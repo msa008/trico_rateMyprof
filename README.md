@@ -108,3 +108,4 @@ Tests cover domain verification, validation/character limits, enrollment confirm
 - Typo tolerance uses PostgreSQL `pg_trgm`; ranking is intentionally simple for the MVP.
 - Legal terms, formal retention periods, institutional approval, and a production abuse-response policy require founder/legal review.
 # tr-co-review
+# tr-co-review
