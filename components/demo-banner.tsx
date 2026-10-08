@@ -1,0 +1,2 @@
+import { FlaskConical } from "lucide-react";
+export function DemoBanner({ show = true }: { show?: boolean }) { if (!show) return null; return <div className="border-b border-[#dce3fb] bg-[#f1f4ff]"><div className="container flex items-center justify-center gap-2 py-2 text-center text-xs font-medium text-[#3752a3]"><FlaskConical className="size-3.5"/>Preview mode uses clearly labeled demonstration catalog data. Connect Supabase to use live data.</div></div> }

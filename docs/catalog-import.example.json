@@ -1,0 +1,13 @@
+{
+  "departments": [
+    { "college_id": "COLLEGE_UUID", "name": "Economics", "code": "ECON", "slug": "economics" }
+  ],
+  "professors": [
+    { "college_id": "COLLEGE_UUID", "department_id": "DEPARTMENT_UUID", "display_name": "Public Catalog Name", "slug": "public-catalog-name", "source_url": "https://college.example/catalog", "source_updated_at": "2026-10-01T00:00:00Z" }
+  ],
+  "courses": [
+    { "college_id": "COLLEGE_UUID", "department_id": "DEPARTMENT_UUID", "code": "ECON 105", "title": "Catalog Course Title", "description": "Official catalog description.", "slug": "econ-105", "source_url": "https://college.example/catalog", "source_updated_at": "2026-10-01T00:00:00Z" }
+  ],
+  "offerings": [],
+  "assignments": []
+}

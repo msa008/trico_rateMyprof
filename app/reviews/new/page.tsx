@@ -1,0 +1,5 @@
+import { ShieldCheck } from "lucide-react";
+import { ReviewForm } from "@/components/review-form";
+import { PageHeading } from "@/components/page-heading";
+import { getReviewOptions } from "@/lib/data";
+export default async function NewReviewPage({searchParams}:{searchParams:Promise<{professor?:string;course?:string}>}){const q=await searchParams;const{options}=await getReviewOptions();return <div className="container max-w-4xl py-12"><PageHeading eyebrow="Verified students only" title="Share your experience" description="Specific, constructive reviews help students make better choices and help instructors understand what students need."/><div className="my-6 flex gap-3 rounded-2xl border border-[#dce3fb] bg-[#f5f7ff] p-4 text-sm text-[#3752a3]"><ShieldCheck className="mt-0.5 size-4 shrink-0"/><p>Your email and account identity are never shown. Each review receives its own random alias.</p></div><ReviewForm options={options} defaultProfessor={q.professor} defaultCourse={q.course}/></div>}
