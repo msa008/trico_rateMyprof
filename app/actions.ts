@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAnonymousContributorHash } from "@/lib/anonymous-session";
-import { answerSchema, communityCatalogSchema, questionSchema, reportSchema, reviewSchema } from "@/lib/validation";
+import { answerSchema, communityCatalogSchema, questionSchema, reportSchema, reviewEditSchema, reviewSchema } from "@/lib/validation";
 import type { ReviewOption } from "@/lib/types";
 
 export type ActionState = { ok: boolean; message: string; fieldErrors?: Record<string, string[]> };
@@ -42,11 +42,26 @@ export async function markNotificationsReadAction():Promise<ActionState>{
 }
 
 export async function submitReviewAction(raw: unknown): Promise<ActionState> {
-  const parsed = reviewSchema.safeParse(raw); if (!parsed.success) return { ok:false, message:"Review the form fields.", fieldErrors: fields(parsed.error) };
+  const parsed = reviewSchema.safeParse(raw); if (!parsed.success) { const fieldErrors=fields(parsed.error); return { ok:false, message:`Please check: ${Object.keys(fieldErrors).join(", ") || "the review form"}.`, fieldErrors }; }
   const context = await anonymousContext(); if (context.error || !context.supabase) return context.error!;
   const { error } = await context.supabase.rpc("submit_anonymous_review", { p_contributor_hash: context.contributorHash, p_professor_id: parsed.data.professorId, p_course_id: parsed.data.courseId, p_offering_id: parsed.data.offeringId, p_semester: parsed.data.semester, p_year: parsed.data.year, p_teaching_quality: parsed.data.teachingQuality, p_workload: parsed.data.workload, p_grading_difficulty: parsed.data.gradingDifficulty, p_would_take_again: parsed.data.wouldTakeAgain, p_attendance_importance: parsed.data.attendanceImportance, p_grade_status:parsed.data.gradeStatus, p_descriptors:parsed.data.descriptors, p_body: parsed.data.body, p_advice: parsed.data.advice || null, p_wish_known: parsed.data.wishKnown || null });
   if (error) return { ok:false, message: error.code === "23505" ? "This browser already reviewed that professor-course-semester combination." : error.message };
   revalidatePath("/"); return { ok:true, message:"Review published anonymously." };
+}
+
+export async function updateReviewAction(raw:unknown):Promise<ActionState>{
+  const parsed=reviewEditSchema.safeParse(raw);if(!parsed.success){const fieldErrors=fields(parsed.error);return{ok:false,message:`Please check: ${Object.keys(fieldErrors).join(", ") || "the review form"}.`,fieldErrors};}
+  const contributorHash=await getAnonymousContributorHash(false);const supabase=createAdminClient();if(!contributorHash||!supabase)return{ok:false,message:"This review is not connected to this browser."};
+  const{reviewId,...values}=parsed.data;const{data,error}=await supabase.from("reviews").update({teaching_quality:values.teachingQuality,workload:values.workload,grading_difficulty:values.gradingDifficulty,would_take_again:values.wouldTakeAgain,attendance_importance:values.attendanceImportance,grade_status:values.gradeStatus,descriptors:values.descriptors,body:values.body,advice:values.advice||null,wish_known:values.wishKnown||null,updated_at:new Date().toISOString()}).eq("id",reviewId).eq("contributor_hash",contributorHash).select("id").maybeSingle();
+  if(error)return{ok:false,message:error.message};if(!data)return{ok:false,message:"This review is not connected to this browser."};revalidatePath("/");revalidatePath("/dashboard");return{ok:true,message:"Review updated."};
+}
+
+export async function deleteReviewAction(reviewId:string):Promise<ActionState>{
+  if(!/^[0-9a-f-]{36}$/i.test(reviewId))return{ok:false,message:"Invalid review."};
+  const contributorHash=await getAnonymousContributorHash(false);const supabase=createAdminClient();if(!contributorHash||!supabase)return{ok:false,message:"This review is not connected to this browser."};
+  const owned=await supabase.from("reviews").select("id").eq("id",reviewId).eq("contributor_hash",contributorHash).maybeSingle();if(!owned.data)return{ok:false,message:"This review is not connected to this browser."};
+  await supabase.from("votes").delete().eq("target_type","review").eq("target_id",reviewId);await supabase.from("reports").delete().eq("target_type","review").eq("target_id",reviewId);
+  const{error}=await supabase.from("reviews").delete().eq("id",reviewId).eq("contributor_hash",contributorHash);if(error)return{ok:false,message:error.message};revalidatePath("/");revalidatePath("/dashboard");return{ok:true,message:"Review deleted."};
 }
 
 export async function submitQuestionAction(raw: unknown): Promise<ActionState> {

@@ -121,6 +121,13 @@ export async function getMyActivity(){
   return{hasSession:true,reviews:(reviewResult.data??[]) as Review[],questions:(questionResult.data??[]) as Question[],answers:(answerResult.data??[]) as Answer[],notifications:(notificationResult.data??[]) as AnonymousNotification[]};
 }
 
+export async function getOwnedReview(id:string){
+  const contributorHash=await getAnonymousContributorHash(false);const supabase=createAdminClient();if(!contributorHash||!supabase)return null;
+  const{data}=await supabase.from("reviews").select("id,semester,year,teaching_quality,workload,grading_difficulty,would_take_again,attendance_importance,grade_status,descriptors,body,advice,wish_known").eq("id",id).eq("contributor_hash",contributorHash).maybeSingle();if(!data)return null;
+  const{data:context}=await supabase.from("public_reviews").select("professor_name,course_code,professor_slug").eq("id",id).maybeSingle();
+  return{...data,professor_name:context?.professor_name??"Professor",course_code:context?.course_code??"Course",professor_slug:context?.professor_slug??""};
+}
+
 export async function getUnreadNotificationCount(){
   const contributorHash=await getAnonymousContributorHash(false);const supabase=createAdminClient();if(!contributorHash||!supabase)return 0;
   const{count}=await supabase.from("notifications").select("id",{count:"exact",head:true}).eq("contributor_hash",contributorHash).is("read_at",null);

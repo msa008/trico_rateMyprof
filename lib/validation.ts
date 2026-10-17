@@ -9,12 +9,16 @@ export const reviewSchema = z.object({
   professorId: z.string().uuid(), courseId: z.string().uuid(), offeringId: z.string().uuid(),
   semester: z.enum(["Fall", "Spring", "Summer"]), year: z.coerce.number().int().min(2000).max(2100),
   teachingQuality: rating, workload: rating, gradingDifficulty: rating,
-  wouldTakeAgain: z.enum(["yes", "no"]).transform((v) => v === "yes"),
+  wouldTakeAgain: z.union([z.enum(["yes", "no"]),z.boolean()]).transform((v) => typeof v === "boolean" ? v : v === "yes"),
   attendanceImportance: z.enum(["Not important", "Somewhat important", "Very important", "Required"]),
   gradeStatus: z.enum(gradeStatuses), descriptors: z.array(z.enum(reviewDescriptors)).max(5,"Choose up to five descriptions."),
   body: safeText(80,3000), advice: safeText(0,1000).optional(),
   wishKnown: safeText(0,1000).optional(), tookCourse: z.union([z.literal(true),z.literal("on")],{message:"Confirm that you took this course."}).transform(()=>true),
 });
+
+export const reviewEditSchema = reviewSchema.omit({
+  professorId:true,courseId:true,offeringId:true,semester:true,year:true,tookCourse:true,
+}).extend({reviewId:z.string().uuid()});
 
 export const questionSchema = z.object({
   title: safeText(10,160), body: safeText(20,2000),
