@@ -13,7 +13,7 @@ export type Review = {
   id: string; alias: string; professor_name: string; professor_slug: string; course_code: string; course_slug: string;
   semester: string; year: number; teaching_quality: number; workload: number; grading_difficulty: number;
   would_take_again: boolean; attendance_importance: string; body: string; advice: string | null;
-  wish_known: string | null; helpful_count: number; created_at: string; questions?: Question[];
+  wish_known: string | null; helpful_count: number; created_at: string; grade_status?:string; descriptors?:string[]; questions?: Question[];
 };
 export type Answer = { id:string; question_id:string; parent_answer_id?:string|null; alias:string; body:string; helpful_count:number; created_at:string };
 export type Question = {

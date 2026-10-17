@@ -1,3 +1,41 @@
-import{describe,expect,it}from"vitest";import{communityCatalogSchema,questionSchema,reportSchema,reviewSchema}from"@/lib/validation";
-const review={professorId:"11111111-1111-4111-8111-111111111111",courseId:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",offeringId:"99999999-9999-4999-8999-999999999999",semester:"Fall",year:2026,teachingQuality:5,workload:3,gradingDifficulty:2,wouldTakeAgain:"yes",attendanceImportance:"Required",body:"A sufficiently detailed review about course structure, feedback, expectations, and the educational experience overall.",tookCourse:"on"};
-describe("content validation",()=>{it("accepts a complete review",()=>expect(reviewSchema.safeParse(review).success).toBe(true));it("rejects ratings outside 1–5",()=>expect(reviewSchema.safeParse({...review,workload:6}).success).toBe(false));it("requires course-attendance confirmation",()=>expect(reviewSchema.safeParse({...review,tookCourse:undefined}).success).toBe(false));it("enforces review length",()=>expect(reviewSchema.safeParse({...review,body:"Too short"}).success).toBe(false));it("blocks private contact information",()=>expect(reviewSchema.safeParse({...review,body:`${review.body} Contact me at student@example.com.`}).success).toBe(false));it("validates questions",()=>expect(questionSchema.safeParse({title:"Is the workload manageable?",body:"I am balancing this with two laboratory courses.",courseId:""}).success).toBe(true));it("restricts report reasons",()=>expect(reportSchema.safeParse({targetType:"review",targetId:review.courseId,reason:"disagreement"}).success).toBe(false));it("accepts Tri-Co course-code examples",()=>{for(const courseCode of["ECON H105","MATH B101","CPSC 021"]){expect(communityCatalogSchema.safeParse({collegeSlug:"haverford",courseCode,courseTitle:"Introduction to the subject",professorName:"Jordan Lee",semester:"Fall",year:2026}).success).toBe(true)}});it("rejects vague community course codes",()=>expect(communityCatalogSchema.safeParse({collegeSlug:"haverford",courseCode:"economics",courseTitle:"Economics",professorName:"Jordan Lee",semester:"Fall",year:2026}).success).toBe(false))});
+import { describe, expect, it } from "vitest";
+import { communityCatalogSchema, questionSchema, reportSchema, reviewSchema } from "@/lib/validation";
+
+const review = {
+  professorId: "11111111-1111-4111-8111-111111111111",
+  courseId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  offeringId: "99999999-9999-4999-8999-999999999999",
+  semester: "Fall",
+  year: 2026,
+  teachingQuality: 5,
+  workload: 3,
+  gradingDifficulty: 2,
+  wouldTakeAgain: "yes",
+  attendanceImportance: "Required",
+  gradeStatus: "Not received yet",
+  descriptors: ["Caring and supportive", "Clear expectations"],
+  body: "A sufficiently detailed review about course structure, feedback, expectations, and the educational experience overall.",
+  tookCourse: true,
+};
+
+describe("content validation", () => {
+  it("accepts a complete review with the checked browser value", () => expect(reviewSchema.safeParse(review).success).toBe(true));
+  it("accepts the legacy form checkbox value", () => expect(reviewSchema.safeParse({ ...review, tookCourse: "on" }).success).toBe(true));
+  it("rejects ratings outside 1–5", () => expect(reviewSchema.safeParse({ ...review, workload: 6 }).success).toBe(false));
+  it("requires course-attendance confirmation", () => expect(reviewSchema.safeParse({ ...review, tookCourse: undefined }).success).toBe(false));
+  it("allows no grade yet or a private grade", () => {
+    expect(reviewSchema.safeParse({ ...review, gradeStatus: "Not received yet" }).success).toBe(true);
+    expect(reviewSchema.safeParse({ ...review, gradeStatus: "Prefer not to say" }).success).toBe(true);
+  });
+  it("allows at most five professor and class descriptions", () => expect(reviewSchema.safeParse({ ...review, descriptors: Array(6).fill("Lecture-heavy") }).success).toBe(false));
+  it("enforces review length", () => expect(reviewSchema.safeParse({ ...review, body: "Too short" }).success).toBe(false));
+  it("blocks private contact information", () => expect(reviewSchema.safeParse({ ...review, body: `${review.body} Contact me at student@example.com.` }).success).toBe(false));
+  it("validates questions", () => expect(questionSchema.safeParse({ title: "Is the workload manageable?", body: "I am balancing this with two laboratory courses.", courseId: "" }).success).toBe(true));
+  it("restricts report reasons", () => expect(reportSchema.safeParse({ targetType: "review", targetId: review.courseId, reason: "disagreement" }).success).toBe(false));
+  it("accepts Tri-Co course-code examples", () => {
+    for (const courseCode of ["ECON H105", "MATH B101", "CPSC 021"]) {
+      expect(communityCatalogSchema.safeParse({ collegeSlug: "haverford", courseCode, courseTitle: "Introduction to the subject", professorName: "Jordan Lee", semester: "Fall", year: 2026 }).success).toBe(true);
+    }
+  });
+  it("rejects vague community course codes", () => expect(communityCatalogSchema.safeParse({ collegeSlug: "haverford", courseCode: "economics", courseTitle: "Economics", professorName: "Jordan Lee", semester: "Fall", year: 2026 }).success).toBe(false));
+});

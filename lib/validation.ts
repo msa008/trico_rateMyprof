@@ -3,14 +3,17 @@ import { z } from "zod";
 const rating = z.coerce.number().int().min(1).max(5);
 const noPrivateContact = (value:string) => !/(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}|(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}|https?:\/\/)/i.test(value);
 const safeText = (minimum:number,maximum:number) => z.string().trim().min(minimum).max(maximum).refine(noPrivateContact,"Remove email addresses, phone numbers, and private links.");
+export const reviewDescriptors=["Caring and supportive","Tough grader","Lecture-heavy","Discussion-based","Clear expectations","Lots of reading","Fast-paced","Accessible outside class","Participation-heavy","Exam-heavy"] as const;
+export const gradeStatuses=["A","A-","B+","B","B-","C+","C","C-","D","F","Pass","No credit","Not received yet","Prefer not to say"] as const;
 export const reviewSchema = z.object({
   professorId: z.string().uuid(), courseId: z.string().uuid(), offeringId: z.string().uuid(),
   semester: z.enum(["Fall", "Spring", "Summer"]), year: z.coerce.number().int().min(2000).max(2100),
   teachingQuality: rating, workload: rating, gradingDifficulty: rating,
   wouldTakeAgain: z.enum(["yes", "no"]).transform((v) => v === "yes"),
   attendanceImportance: z.enum(["Not important", "Somewhat important", "Very important", "Required"]),
+  gradeStatus: z.enum(gradeStatuses), descriptors: z.array(z.enum(reviewDescriptors)).max(5,"Choose up to five descriptions."),
   body: safeText(80,3000), advice: safeText(0,1000).optional(),
-  wishKnown: safeText(0,1000).optional(), tookCourse: z.literal("on", { message: "Confirm that you took this course." }),
+  wishKnown: safeText(0,1000).optional(), tookCourse: z.union([z.literal(true),z.literal("on")],{message:"Confirm that you took this course."}).transform(()=>true),
 });
 
 export const questionSchema = z.object({
