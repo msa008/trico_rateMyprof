@@ -1,13 +1,14 @@
 // @vitest-environment node
-import{readFileSync}from"node:fs";import{describe,expect,it}from"vitest";
-const sql=readFileSync("supabase/migrations/202610080001_initial_schema.sql","utf8");
-describe("database privacy and authorization",()=>{
-  it("omits owner identifiers from all public content views",()=>{for(const name of["public_reviews","public_questions","public_answers"]){const start=sql.indexOf(`create view public.${name}`);const end=sql.indexOf(";",start);expect(sql.slice(start,end)).not.toMatch(/author_id|user_id|email/i)}});
-  it("enables RLS on every private and user-generated table",()=>{for(const table of["private_profiles","user_roles","reviews","review_aliases","questions","answers","votes","course_interests","notifications","reports","moderation_actions"]){expect(sql).toContain(`alter table public.${table} enable row level security`)}});
-  it("prevents duplicate reviews and votes",()=>{expect(sql).toContain("unique(author_id,professor_id,course_id,semester,year)");expect(sql).toContain("unique(user_id,target_type,target_id)")});
-  it("requires verified students for review submission and contribution policies",()=>{expect(sql).toContain("if not public.is_verified_student()");expect(sql).toContain("verified_question_insert");expect(sql).toContain("verified_answer_insert")});
-  it("does not expose role self-assignment",()=>{expect(sql).not.toMatch(/create policy .*user_roles for (insert|update)/i);expect(sql).toContain("role in ('moderator','admin')")});
-  it("protects public API from base review ownership",()=>{expect(sql).toContain("revoke select on public.reviews");expect(sql).toContain("grant select on public.public_reviews")});
-  it("creates per-review aliases and keeps reviewer replies consistent",()=>{expect(sql).toContain("insert into public.review_aliases");expect(sql).toContain("r.author_id=new.author_id")});
-  it("covers voting, reporting, moderation, and rate limiting",()=>{expect(sql).toContain("own_votes_all");expect(sql).toContain("verified_report_insert");expect(sql).toContain("moderator_reports_update");expect(sql).toContain("check_rate_limit")});
+import{existsSync,readFileSync}from"node:fs";import{describe,expect,it}from"vitest";
+const initial=readFileSync("supabase/migrations/202610080001_initial_schema.sql","utf8");
+const anonymous=readFileSync("supabase/migrations/202610160001_remove_authentication.sql","utf8");
+describe("database privacy and anonymous contributions",()=>{
+  it("omits private identifiers from all public content views",()=>{for(const name of["public_reviews","public_questions","public_answers"]){const start=initial.indexOf(`create view public.${name}`);const end=initial.indexOf(";",start);expect(initial.slice(start,end)).not.toMatch(/author_id|user_id|email|contributor_hash/i)}});
+  it("keeps row-level security on user-generated tables",()=>{for(const table of["reviews","review_aliases","questions","answers","votes","course_interests","reports"]){expect(initial).toContain(`alter table public.${table} enable row level security`)}});
+  it("prevents duplicate anonymous reviews, votes, interests, and reports",()=>{for(const index of["anonymous_review_once","anonymous_vote_once","anonymous_interest_once","anonymous_report_once"]){expect(anonymous).toContain(`create unique index if not exists ${index}`)}});
+  it("rate limits anonymous reviews, questions, and answers on the server",()=>{expect(anonymous).toContain("check_anonymous_rate_limit");expect(anonymous).toContain("'review',3,86400");expect(anonymous).toContain("revoke execute on function public.check_anonymous_rate_limit")});
+  it("does not expose ownership tables through public reads",()=>{expect(initial).toContain("revoke select on public.reviews");expect(initial).toContain("grant select on public.public_reviews")});
+  it("creates per-review aliases and reuses them only for matching reviewer replies",()=>{expect(anonymous).toContain("insert into public.review_aliases");expect(anonymous).toContain("r.contributor_hash=new.contributor_hash")});
+  it("keeps anonymous mutations behind server-only functions",()=>{expect(anonymous).toContain("revoke execute on function public.submit_anonymous_review");expect(anonymous).toContain("from anon,authenticated")});
+  it("has no login, account callback, dashboard, or browser auth client",()=>{for(const path of["app/login/page.tsx","app/auth/callback/route.ts","app/dashboard/page.tsx","lib/supabase/client.ts"]){expect(existsSync(path)).toBe(false)}});
 });

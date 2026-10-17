@@ -1,9 +1,0 @@
-"use client";
-import { useActionState, useState } from "react";
-import { signInAction, signUpAction, type ActionState } from "@/app/actions";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-const initial:ActionState={ok:false,message:""};
-export function AuthForm(){const[mode,setMode]=useState<"signin"|"signup">("signin");const[state,action,pending]=useActionState<ActionState,FormData>(mode==="signin"?signInAction:signUpAction,initial);return <div><div className="grid grid-cols-2 rounded-xl bg-[#f2f4f7] p-1"><button onClick={()=>setMode("signin")} className={`rounded-lg py-2 text-sm font-semibold ${mode==="signin"?"bg-white shadow-sm":"text-[#667085]"}`}>Sign in</button><button onClick={()=>setMode("signup")} className={`rounded-lg py-2 text-sm font-semibold ${mode==="signup"?"bg-white shadow-sm":"text-[#667085]"}`}>Create account</button></div><form action={action} className="mt-6 grid gap-4"><div><Label htmlFor="email">College email</Label><Input id="email" name="email" type="email" autoComplete="email" required placeholder="you@haverford.edu"/><Error text={state.fieldErrors?.email?.[0]}/></div><div><Label htmlFor="password">Password</Label><Input id="password" name="password" type="password" autoComplete={mode==="signin"?"current-password":"new-password"} required minLength={10}/><Error text={state.fieldErrors?.password?.[0]}/></div>{state.message&&<p role="status" className={`rounded-xl p-3 text-sm ${state.ok?"bg-green-50 text-green-800":"bg-red-50 text-red-700"}`}>{state.message}</p>}<Button disabled={pending} type="submit">{pending?"Please wait…":mode==="signin"?"Sign in":"Create verified account"}</Button></form></div>}
-function Error({text}:{text?:string}){return text?<p className="mt-1 text-xs text-red-600">{text}</p>:null}

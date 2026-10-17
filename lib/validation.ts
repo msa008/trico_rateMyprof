@@ -1,10 +1,4 @@
 import { z } from "zod";
-import { isAllowedEmail } from "./config";
-
-export const signUpSchema = z.object({
-  email: z.string().email().refine(isAllowedEmail, "Use a Haverford, Bryn Mawr, or Swarthmore email."),
-  password: z.string().min(10, "Use at least 10 characters.").max(128),
-});
 
 const rating = z.coerce.number().int().min(1).max(5);
 export const reviewSchema = z.object({

@@ -204,7 +204,17 @@ create view public.course_professors_public as select distinct pca.professor_id,
 create view public.review_form_options as select pca.offering_id,pca.professor_id,p.display_name professor_name,o.course_id,c.code course_code,c.title course_title,col.name college_name,o.semester,o.year from public.professor_course_assignments pca join public.professors p on p.id=pca.professor_id join public.course_offerings o on o.id=pca.offering_id join public.courses c on c.id=o.course_id join public.colleges col on col.id=c.college_id;
 
 create or replace function public.search_catalog(search_term text,result_limit int default 12) returns table(id uuid,type text,title text,subtitle text,slug text) language sql stable security definer set search_path='' as $$
-  select * from ((select p.id,'professor',p.display_name,d.name||' · '||c.name,p.slug,similarity(p.display_name,search_term) score from public.professors p join public.departments d on d.id=p.department_id join public.colleges c on c.id=p.college_id where p.display_name % search_term or p.display_name ilike '%'||search_term||'%') union all (select co.id,'course',co.code||': '||co.title,d.name||' · '||c.name,co.slug,greatest(similarity(co.code,search_term),similarity(co.title,search_term)) from public.courses co join public.departments d on d.id=co.department_id join public.colleges c on c.id=co.college_id where co.code % search_term or co.title % search_term or co.code ilike '%'||search_term||'%' or co.title ilike '%'||search_term||'%')) x(id,type,title,subtitle,slug,score) order by score desc limit least(result_limit,25);
+  select x.id,x.type,x.title,x.subtitle,x.slug from (
+    select p.id,'professor'::text type,p.display_name title,d.name||' · '||c.name subtitle,p.slug,
+      case when lower(p.display_name)=lower(search_term) then 3 when p.display_name ilike search_term||'%' then 2 else 1 end score
+    from public.professors p join public.departments d on d.id=p.department_id join public.colleges c on c.id=p.college_id
+    where p.display_name ilike '%'||search_term||'%'
+    union all
+    select co.id,'course'::text,co.code||': '||co.title,d.name||' · '||c.name,co.slug,
+      case when lower(co.code)=lower(search_term) then 3 when co.code ilike search_term||'%' or co.title ilike search_term||'%' then 2 else 1 end
+    from public.courses co join public.departments d on d.id=co.department_id join public.colleges c on c.id=co.college_id
+    where co.code ilike '%'||search_term||'%' or co.title ilike '%'||search_term||'%'
+  ) x order by x.score desc,x.title limit least(result_limit,25);
 $$;
 
 -- RLS: catalog is public; UGC bases reveal only the owner's rows. Everyone reads through public-safe views.

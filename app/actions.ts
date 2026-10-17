@@ -1,68 +1,46 @@
 "use server";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
+import { createHmac, randomUUID } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { answerSchema, questionSchema, reportSchema, reviewSchema, signUpSchema } from "@/lib/validation";
+import { answerSchema, questionSchema, reportSchema, reviewSchema } from "@/lib/validation";
 
 export type ActionState = { ok: boolean; message: string; fieldErrors?: Record<string, string[]> };
-const setupError: ActionState = { ok: false, message: "Supabase is not configured yet. Add the environment variables to enable submissions." };
+const setupError: ActionState = { ok: false, message: "Anonymous submissions are not configured yet. Add the Supabase server credentials to enable them." };
 
 function fields(error: { flatten: () => { fieldErrors: Record<string, string[]> } }) { return error.flatten().fieldErrors; }
-async function verifiedUser() {
-  const supabase = await createClient(); if (!supabase) return { supabase: null, user: null, error: setupError };
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { supabase, user: null, error: { ok: false, message: "Sign in with your verified college email to contribute." } as ActionState };
-  if (!user.email_confirmed_at) return { supabase, user: null, error: { ok: false, message: "Verify your email before contributing." } as ActionState };
-  const { data: profile } = await supabase.from("private_profiles").select("is_suspended").eq("user_id", user.id).single();
-  if (profile?.is_suspended) return { supabase, user: null, error: { ok: false, message: "This account is suspended." } as ActionState };
-  return { supabase, user, error: null };
+async function anonymousContext() {
+  const supabase = createAdminClient();
+  if (!supabase) return { supabase: null, contributorHash: "", error: setupError };
+  const jar = await cookies();
+  let sessionId = jar.get("trico_anonymous_session")?.value;
+  if (!sessionId) {
+    sessionId = randomUUID();
+    jar.set("trico_anonymous_session", sessionId, { httpOnly: true, sameSite: "strict", secure: process.env.NODE_ENV === "production", maxAge: 60 * 60 * 24 * 365, path: "/" });
+  }
+  const secret = process.env.RATE_LIMIT_SECRET ?? process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  const contributorHash = createHmac("sha256", secret).update(sessionId).digest("hex");
+  return { supabase, contributorHash, error: null };
 }
-
-export async function signUpAction(_: ActionState, formData: FormData): Promise<ActionState> {
-  const parsed = signUpSchema.safeParse({ email: formData.get("email"), password: formData.get("password") });
-  if (!parsed.success) return { ok: false, message: "Check the highlighted fields.", fieldErrors: fields(parsed.error) };
-  const supabase = await createClient(); if (!supabase) return setupError;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  const { error } = await supabase.auth.signUp({ email: parsed.data.email, password: parsed.data.password, options: { emailRedirectTo: `${siteUrl}/auth/callback` } });
-  return error ? { ok: false, message: error.message } : { ok: true, message: "Check your college inbox to verify your account." };
-}
-
-export async function signInAction(_: ActionState, formData: FormData): Promise<ActionState> {
-  const parsed = signUpSchema.safeParse({ email: formData.get("email"), password: formData.get("password") });
-  if (!parsed.success) return { ok: false, message: "Enter a valid college email and password.", fieldErrors: fields(parsed.error) };
-  const supabase = await createClient(); if (!supabase) return setupError;
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
-  if (error) return { ok: false, message: "Email or password is incorrect, or the account is not verified." };
-  redirect("/dashboard");
-}
-
-export async function signOutAction() { const supabase = await createClient(); if (supabase) await supabase.auth.signOut(); redirect("/"); }
 
 export async function submitReviewAction(raw: unknown): Promise<ActionState> {
   const parsed = reviewSchema.safeParse(raw); if (!parsed.success) return { ok:false, message:"Review the form fields.", fieldErrors: fields(parsed.error) };
-  const auth = await verifiedUser(); if (auth.error || !auth.supabase || !auth.user) return auth.error!;
-  const { data, error } = await auth.supabase.rpc("submit_review", { p_professor_id: parsed.data.professorId, p_course_id: parsed.data.courseId, p_offering_id: parsed.data.offeringId, p_semester: parsed.data.semester, p_year: parsed.data.year, p_teaching_quality: parsed.data.teachingQuality, p_workload: parsed.data.workload, p_grading_difficulty: parsed.data.gradingDifficulty, p_would_take_again: parsed.data.wouldTakeAgain, p_attendance_importance: parsed.data.attendanceImportance, p_body: parsed.data.body, p_advice: parsed.data.advice || null, p_wish_known: parsed.data.wishKnown || null });
-  if (error) return { ok:false, message: error.code === "23505" ? "You already reviewed this professor-course-semester combination." : error.message };
-  revalidatePath("/"); return { ok:true, message:`Review published anonymously${data ? "." : "."}` };
+  const context = await anonymousContext(); if (context.error || !context.supabase) return context.error!;
+  const { error } = await context.supabase.rpc("submit_anonymous_review", { p_contributor_hash: context.contributorHash, p_professor_id: parsed.data.professorId, p_course_id: parsed.data.courseId, p_offering_id: parsed.data.offeringId, p_semester: parsed.data.semester, p_year: parsed.data.year, p_teaching_quality: parsed.data.teachingQuality, p_workload: parsed.data.workload, p_grading_difficulty: parsed.data.gradingDifficulty, p_would_take_again: parsed.data.wouldTakeAgain, p_attendance_importance: parsed.data.attendanceImportance, p_body: parsed.data.body, p_advice: parsed.data.advice || null, p_wish_known: parsed.data.wishKnown || null });
+  if (error) return { ok:false, message: error.code === "23505" ? "This browser already reviewed that professor-course-semester combination." : error.message };
+  revalidatePath("/"); return { ok:true, message:"Review published anonymously." };
 }
 
 export async function submitQuestionAction(raw: unknown): Promise<ActionState> {
   const parsed = questionSchema.safeParse(raw); if(!parsed.success) return {ok:false,message:"Review the question fields.",fieldErrors:fields(parsed.error)};
-  const auth=await verifiedUser(); if(auth.error||!auth.supabase||!auth.user) return auth.error!;
-  const {error}=await auth.supabase.from("questions").insert({title:parsed.data.title,body:parsed.data.body,course_id:parsed.data.courseId||null,professor_id:parsed.data.professorId||null,review_id:parsed.data.reviewId||null,author_id:auth.user.id});
+  const context=await anonymousContext(); if(context.error||!context.supabase) return context.error!;
+  const rate=await context.supabase.rpc("check_anonymous_rate_limit",{p_contributor_hash:context.contributorHash,p_action:"question",p_max:8,p_window_seconds:86400}); if(rate.error)return{ok:false,message:rate.error.message};
+  const {error}=await context.supabase.from("questions").insert({title:parsed.data.title,body:parsed.data.body,course_id:parsed.data.courseId||null,professor_id:parsed.data.professorId||null,review_id:parsed.data.reviewId||null,contributor_hash:context.contributorHash});
   if(error) return {ok:false,message:error.message}; revalidatePath("/questions"); return {ok:true,message:"Question posted."};
 }
 
-export async function submitAnswerAction(raw: unknown): Promise<ActionState> { const parsed=answerSchema.safeParse(raw); if(!parsed.success) return {ok:false,message:"Answer must be 10–2,000 characters.",fieldErrors:fields(parsed.error)}; const auth=await verifiedUser(); if(auth.error||!auth.supabase||!auth.user)return auth.error!; const {error}=await auth.supabase.from("answers").insert({question_id:parsed.data.questionId,body:parsed.data.body,parent_answer_id:parsed.data.parentAnswerId||null,author_id:auth.user.id}); if(error)return {ok:false,message:error.message}; revalidatePath(`/questions/${parsed.data.questionId}`); return {ok:true,message:"Answer posted."}; }
+export async function submitAnswerAction(raw: unknown): Promise<ActionState> { const parsed=answerSchema.safeParse(raw); if(!parsed.success) return {ok:false,message:"Answer must be 10–2,000 characters.",fieldErrors:fields(parsed.error)}; const context=await anonymousContext(); if(context.error||!context.supabase)return context.error!; const rate=await context.supabase.rpc("check_anonymous_rate_limit",{p_contributor_hash:context.contributorHash,p_action:"answer",p_max:20,p_window_seconds:86400});if(rate.error)return{ok:false,message:rate.error.message};const {error}=await context.supabase.from("answers").insert({question_id:parsed.data.questionId,body:parsed.data.body,parent_answer_id:parsed.data.parentAnswerId||null,contributor_hash:context.contributorHash}); if(error)return {ok:false,message:error.message}; revalidatePath(`/questions/${parsed.data.questionId}`); return {ok:true,message:"Answer posted anonymously."}; }
 
-export async function voteAction(targetType:"review"|"question"|"answer",targetId:string):Promise<ActionState>{ const auth=await verifiedUser(); if(auth.error||!auth.supabase||!auth.user)return auth.error!; const {error}=await auth.supabase.from("votes").upsert({user_id:auth.user.id,target_type:targetType,target_id:targetId,value:1},{onConflict:"user_id,target_type,target_id"}); return error?{ok:false,message:error.message}:{ok:true,message:"Vote recorded."}; }
-export async function reportAction(raw:unknown):Promise<ActionState>{const parsed=reportSchema.safeParse(raw);if(!parsed.success)return{ok:false,message:"Select a report reason."};const auth=await verifiedUser();if(auth.error||!auth.supabase||!auth.user)return auth.error!;const{error}=await auth.supabase.from("reports").insert({...parsed.data,reporter_id:auth.user.id});return error?{ok:false,message:error.message}:{ok:true,message:"Report sent to moderators."};}
-export async function deleteReviewAction(id:string){const auth=await verifiedUser();if(auth.error||!auth.supabase)return;await auth.supabase.from("reviews").delete().eq("id",id);revalidatePath("/dashboard");}
-export async function setInterestAction(courseId:string,status:"interested"|"planning",semester:string,year:number):Promise<ActionState>{const auth=await verifiedUser();if(auth.error||!auth.supabase||!auth.user)return auth.error!;const{error}=await auth.supabase.from("course_interests").upsert({user_id:auth.user.id,course_id:courseId,status,semester,year},{onConflict:"user_id,course_id,semester,year"});return error?{ok:false,message:error.message}:{ok:true,message:"Private interest saved."};}
-
-export async function updateNotificationPreferences(enabled:boolean,emailEnabled:boolean):Promise<ActionState>{const auth=await verifiedUser();if(auth.error||!auth.supabase||!auth.user)return auth.error!;const{error}=await auth.supabase.from("private_profiles").update({notifications_enabled:enabled,email_notifications_enabled:emailEnabled,updated_at:new Date().toISOString()}).eq("user_id",auth.user.id);return error?{ok:false,message:error.message}:{ok:true,message:"Preferences saved."};}
-export async function deleteAccountAction(){const auth=await verifiedUser();if(auth.error||!auth.user)return;const admin=createAdminClient();if(!admin)throw new Error("Server-side account deletion is not configured.");const{error}=await admin.auth.admin.deleteUser(auth.user.id);if(error)throw new Error(error.message);redirect("/");}
-export async function updateReviewAction(id:string,formData:FormData){const auth=await verifiedUser();if(auth.error||!auth.supabase)return;const body=String(formData.get("body")??"").trim();const advice=String(formData.get("advice")??"").trim();if(body.length<80||body.length>3000)return;await auth.supabase.from("reviews").update({body,advice:advice||null,updated_at:new Date().toISOString()}).eq("id",id);revalidatePath("/dashboard");redirect("/dashboard");}
-export async function moderateContentAction(targetType:"review"|"question"|"answer",targetId:string,decision:"hidden"|"visible"|"removed",reason:string){const supabase=await createClient();if(!supabase)return;const{data:{user}}=await supabase.auth.getUser();if(!user)return;const{data:role}=await supabase.from("user_roles").select("role").eq("user_id",user.id).single();if(!role||!["admin","moderator"].includes(role.role))return;const table=targetType==="review"?"reviews":targetType==="question"?"questions":"answers";await supabase.from(table).update({status:decision}).eq("id",targetId);await supabase.from("moderation_actions").insert({moderator_id:user.id,target_type:targetType,target_id:targetId,action:decision,reason});await supabase.from("reports").update({status:"resolved",resolved_at:new Date().toISOString(),assigned_to:user.id}).eq("target_type",targetType).eq("target_id",targetId);revalidatePath("/admin");}
-export async function suspendContentAuthorAction(targetType:"review"|"question"|"answer",targetId:string){const supabase=await createClient();if(!supabase)return;const{data:{user}}=await supabase.auth.getUser();if(!user)return;const{data:role}=await supabase.from("user_roles").select("role").eq("user_id",user.id).single();if(!role||!["admin","moderator"].includes(role.role))return;const table=targetType==="review"?"reviews":targetType==="question"?"questions":"answers";const{data:content}=await supabase.from(table).select("author_id").eq("id",targetId).single();if(!content?.author_id)return;await supabase.from("private_profiles").update({is_suspended:true,updated_at:new Date().toISOString()}).eq("user_id",content.author_id);await supabase.from("moderation_actions").insert({moderator_id:user.id,target_type:targetType,target_id:targetId,account_id:content.author_id,action:"suspend_account",reason:"Account suspended from a reviewed report"});revalidatePath("/admin");}
+export async function voteAction(targetType:"review"|"question"|"answer",targetId:string):Promise<ActionState>{const context=await anonymousContext();if(context.error||!context.supabase)return context.error!;await context.supabase.from("votes").delete().eq("contributor_hash",context.contributorHash).eq("target_type",targetType).eq("target_id",targetId);const{error}=await context.supabase.from("votes").insert({contributor_hash:context.contributorHash,target_type:targetType,target_id:targetId,value:1});return error?{ok:false,message:error.message}:{ok:true,message:"Vote recorded."};}
+export async function reportAction(raw:unknown):Promise<ActionState>{const parsed=reportSchema.safeParse(raw);if(!parsed.success)return{ok:false,message:"Select a report reason."};const context=await anonymousContext();if(context.error||!context.supabase)return context.error!;await context.supabase.from("reports").delete().eq("contributor_hash",context.contributorHash).eq("target_type",parsed.data.targetType).eq("target_id",parsed.data.targetId);const{error}=await context.supabase.from("reports").insert({target_type:parsed.data.targetType,target_id:parsed.data.targetId,reason:parsed.data.reason,details:parsed.data.details||null,contributor_hash:context.contributorHash});return error?{ok:false,message:error.message}:{ok:true,message:"Anonymous report recorded for operator review."};}
+export async function setInterestAction(courseId:string,status:"interested"|"planning",semester:string,year:number):Promise<ActionState>{const context=await anonymousContext();if(context.error||!context.supabase)return context.error!;await context.supabase.from("course_interests").delete().eq("contributor_hash",context.contributorHash).eq("course_id",courseId).eq("semester",semester).eq("year",year);const{error}=await context.supabase.from("course_interests").insert({contributor_hash:context.contributorHash,course_id:courseId,status,semester,year});return error?{ok:false,message:error.message}:{ok:true,message:"Anonymous interest saved for this browser."};}
