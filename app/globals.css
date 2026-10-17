@@ -38,6 +38,13 @@ button, a { -webkit-tap-highlight-color: transparent; }
   mask-image: linear-gradient(to bottom, black 35%, transparent 100%);
 }
 .prose-copy p + p { margin-top: .9rem; }
+/* Rating summaries stay light and readable; dark fills felt too heavy for this product. */
+[class~="bg-[#11182a]"][class~="border-[#11182a]"] {
+  background: #f5f7ff !important;
+  border-color: #c9d5ff !important;
+  color: #172554 !important;
+}
+[class~="bg-[#11182a]"][class~="border-[#11182a]"] * { color: #172554 !important; }
 @media (prefers-reduced-motion: no-preference) {
   .lift { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
   .lift:hover { transform: translateY(-2px); box-shadow: 0 16px 45px rgba(17,24,42,.08); border-color: #d7dcea; }

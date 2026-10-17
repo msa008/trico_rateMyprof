@@ -6,6 +6,7 @@ const catalogFeatures=readFileSync("supabase/migrations/202610170001_catalog_sea
 const catalogData=readFileSync("supabase/migrations/202610170002_import_trico_catalog.sql","utf8");
 const community=readFileSync("supabase/migrations/202610170003_community_catalog_and_anonymous_notifications.sql","utf8");
 const departmentSearch=readFileSync("supabase/migrations/202610170004_department_search.sql","utf8");
+const flexibleSearch=readFileSync("supabase/migrations/202610170005_flexible_professor_search.sql","utf8");
 describe("database privacy and anonymous contributions",()=>{
   it("omits private identifiers from all public content views",()=>{for(const name of["public_reviews","public_questions","public_answers"]){const start=initial.indexOf(`create view public.${name}`);const end=initial.indexOf(";",start);expect(initial.slice(start,end)).not.toMatch(/author_id|user_id|email|contributor_hash/i)}});
   it("keeps row-level security on user-generated tables",()=>{for(const table of["reviews","review_aliases","questions","answers","votes","course_interests","reports"]){expect(initial).toContain(`alter table public.${table} enable row level security`)}});
@@ -20,4 +21,5 @@ describe("database privacy and anonymous contributions",()=>{
   it("keeps community catalog creation server-only and visibly unverified",()=>{expect(community).toContain("catalog_verified");expect(community).toContain("'community',false");expect(community).toContain("to service_role");expect(community).toContain("'catalog_add',5,86400")});
   it("routes anonymous answers and review questions to hashed-browser notifications",()=>{expect(community).toContain("notify_anonymous_question");expect(community).toContain("notify_anonymous_answer");expect(community).toContain("contributor_hash")});
   it("searches departments and colleges without exposing private data",()=>{expect(departmentSearch).toContain("'department'::text");expect(departmentSearch).toContain("'college'::text");expect(departmentSearch).toContain("security definer");expect(departmentSearch).not.toMatch(/email|contributor_hash|author_id/)});
+  it("supports flexible multi-word professor searches in both search surfaces",()=>{expect(flexibleSearch).toContain("regexp_split_to_array");expect(flexibleSearch).toContain("regexp_replace(lower(p.display_name)");expect(flexibleSearch).toContain("search_review_options")});
 });
