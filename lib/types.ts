@@ -10,7 +10,7 @@ export type Course = {
   review_count: number; interested_count?: number; planning_count?: number;
 };
 export type Review = {
-  id: string; professor_name: string; professor_slug: string; course_code: string; course_slug: string;
+  id: string; course_id?:string; professor_name: string; professor_slug: string; course_code: string; course_slug: string;
   semester: string; year: number; teaching_quality: number; workload: number; grading_difficulty: number;
   would_take_again: boolean; attendance_importance: string; body: string; advice: string | null;
   wish_known: string | null; helpful_count: number; created_at: string; grade_status?:string; descriptors?:string[]; questions?: Question[];

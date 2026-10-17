@@ -1,97 +1,20 @@
 import Link from "next/link";
-import { MessageCircle } from "lucide-react";
-import type { Review } from "@/lib/types";
-import { formatDate } from "@/lib/utils";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
-import { Card } from "./ui/card";
-import { EngagementButtons } from "./engagement-buttons";
-import { AnswerForm } from "./answer-form";
+import{MessageCircle}from "lucide-react";
+import type{Review}from "@/lib/types";
+import{formatDate}from "@/lib/utils";
+import{Button}from "./ui/button";
+import{Card}from "./ui/card";
+import{EngagementButtons}from "./engagement-buttons";
+import{AnswerForm}from "./answer-form";
 
-export function ReviewCard({ review }: { review: Review }) {
-  const showGrade = review.grade_status && review.grade_status !== "Prefer not to say";
+export function ReviewCard({review}:{review:Review}){const showGrade=review.grade_status&&review.grade_status!=="Prefer not to say";return <Card className="overflow-hidden border-[#d8dde6] bg-white p-0 shadow-none"><div className="p-5 sm:p-7">
+  <div className="flex flex-wrap items-start justify-between gap-3"><div className="flex flex-wrap items-center gap-2"><Link href={`/courses/${review.course_slug}`} className="font-bold hover:text-[#a91d35] hover:underline">{review.course_code} · {review.semester} {review.year}</Link><span className={`rounded-full border px-2.5 py-0.5 text-xs font-bold ${review.would_take_again?"border-emerald-300 bg-emerald-50 text-emerald-800":"border-rose-200 bg-rose-50 text-rose-700"}`}>{review.would_take_again?"✓ Would take again":"Would not take again"}</span>{showGrade&&<span className="rounded-full bg-[#f3f4f6] px-2.5 py-1 text-xs font-semibold">Grade: {review.grade_status}</span>}</div><span className="text-sm text-[#566174]">{formatDate(review.created_at)}</span></div>
+  <div className="mt-4 flex flex-wrap gap-2"><MetricChip label="Teaching" value={review.teaching_quality}/><MetricChip label="Workload" value={review.workload}/><MetricChip label="Grading" value={review.grading_difficulty}/>{review.descriptors?.map(descriptor=><span key={descriptor} className="rounded-lg bg-[#f3f4f6] px-3 py-1.5 text-xs font-semibold">{descriptor}</span>)}</div>
+  <p className="mt-5 text-[17px] leading-7 text-[#222936]">{review.body}</p>
+  {review.advice&&<div className="mt-5 rounded-xl border-l-4 border-[#a91d35] bg-[#fbf0f2] p-4"><p className="text-sm font-bold text-[#a91d35]">Advice for future students</p><p className="mt-1 text-sm leading-6 text-[#323846]">{review.advice}</p></div>}
+  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#d8dde6] pt-4"><EngagementButtons type="review" id={review.id} count={review.helpful_count}/><Button asChild variant="ghost" size="sm" className="font-bold !text-[#a91d35] hover:!bg-[#fbf0f2]"><Link href={`/questions/ask?review=${review.id}`}><MessageCircle className="size-4"/>Ask a question</Link></Button></div>
+  <p className="mt-3 text-xs font-medium text-[#667085]">Posted by an anonymous student</p>
+  {review.questions&&review.questions.length>0&&<div className="mt-5 grid gap-3">{review.questions.map(question=><div key={question.id} className="rounded-xl bg-[#f3f4f6] p-4 sm:p-5"><div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[#667085]"><span>Question from an anonymous student</span><span>·</span><span>{formatDate(question.created_at)}</span></div><Link href={`/questions/${question.id}`} className="mt-2 block text-base font-bold hover:text-[#a91d35]">{question.title}</Link>{question.body&&<p className="mt-1 text-sm text-[#566174]">{question.body}</p>}{question.answers?.map(answer=><div key={answer.id} className="mt-3 rounded-lg border-l-3 border-[#a91d35] bg-white px-4 py-3"><p className="text-xs font-semibold text-[#667085]">Anonymous answer</p><p className="mt-1 text-sm">{answer.body}</p></div>)}<details className="mt-3"><summary className="cursor-pointer text-sm font-bold text-[#a91d35]">Answer this question</summary><div className="mt-3"><AnswerForm questionId={question.id}/></div></details></div>)}</div>}
+</div></Card>}
 
-  return (
-    <Card className="p-5 sm:p-6">
-      <div className="flex flex-col gap-5 sm:flex-row">
-        <div className="flex gap-3 sm:w-32 sm:shrink-0 sm:flex-col">
-          <Score label="Teaching" value={review.teaching_quality} />
-          <Score label="Workload" value={review.workload} />
-          <Score label="Grading" value={review.grading_difficulty} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge>{review.course_code}</Badge>
-            <span className="text-xs font-medium text-[#667085]">{review.semester} {review.year}</span>
-            {showGrade && <Badge className="bg-[#edf1ff] text-[#2447b6]">Grade: {review.grade_status}</Badge>}
-            <span className="text-xs text-[#98a2b3]">·</span>
-            <span className="text-xs font-medium text-[#667085]">{formatDate(review.created_at)}</span>
-          </div>
-          {review.descriptors && review.descriptors.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {review.descriptors.map((descriptor) => (
-                <span key={descriptor} className="rounded-full border border-[#dce3fb] bg-[#f7f9ff] px-2.5 py-1 text-xs font-semibold text-[#3159d7]">
-                  {descriptor}
-                </span>
-              ))}
-            </div>
-          )}
-          <p className="mt-4 leading-relaxed text-[#344054]">{review.body}</p>
-          {review.advice && (
-            <div className="mt-4 rounded-xl bg-[#f7f8fb] p-4">
-              <p className="text-xs font-bold uppercase tracking-wider text-[#667085]">Advice for future students</p>
-              <p className="mt-1 text-sm text-[#344054]">{review.advice}</p>
-            </div>
-          )}
-          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-[#eef0f4] pt-4">
-            <EngagementButtons type="review" id={review.id} count={review.helpful_count} />
-            <Button asChild variant="ghost" size="sm">
-              <Link href={`/questions/ask?review=${review.id}`}><MessageCircle className="size-4" />Ask about this review</Link>
-            </Button>
-          </div>
-          <div className="mt-3 flex items-center gap-2 text-xs text-[#667085]">
-            <span className="size-2 rounded-full bg-[#3159d7]" />
-            <span><strong>Anonymous student</strong></span>
-            <span>·</span>
-            <span>{review.would_take_again ? "Would take again" : "Would not take again"}</span>
-          </div>
-          {review.questions && review.questions.length > 0 && (
-            <div className="mt-5 rounded-2xl border border-[#dce3fb] bg-[#fafbff] p-4">
-              <p className="text-xs font-bold uppercase tracking-[.14em] text-[#3159d7]">Questions about this review</p>
-              <div className="mt-3 grid gap-4">
-                {review.questions.map((question) => (
-                  <div key={question.id} className="rounded-xl bg-white p-4 ring-1 ring-[#e5e8ef]">
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-[#667085]">
-                      <strong>Anonymous student</strong><span>·</span><span>{formatDate(question.created_at)}</span>
-                    </div>
-                    <Link href={`/questions/${question.id}`} className="mt-2 block font-semibold hover:text-[#3159d7]">{question.title}</Link>
-                    <p className="mt-1 text-sm leading-relaxed text-[#475467]">{question.body}</p>
-                    {question.answers?.map((answer) => (
-                      <div key={answer.id} className="mt-3 border-l-2 border-[#cfd9ff] pl-3 text-sm">
-                        <p className="text-xs font-semibold text-[#667085]">Anonymous student</p>
-                        <p className="mt-1 text-[#344054]">{answer.body}</p>
-                      </div>
-                    ))}
-                    <details className="mt-3">
-                      <summary className="cursor-pointer text-sm font-semibold text-[#3159d7]">Answer this question</summary>
-                      <div className="mt-3"><AnswerForm questionId={question.id} /></div>
-                    </details>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function Score({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="min-w-22 rounded-xl bg-[#f2f4f7] px-3 py-2 text-center sm:px-2">
-      <strong className="block text-xl leading-none">{value.toFixed(1)}</strong>
-      <span className="mt-1 block text-[11px] font-semibold uppercase tracking-wide text-[#667085]">{label}</span>
-    </div>
-  );
-}
+function MetricChip({label,value}:{label:string;value:number}){return <span className="rounded-lg bg-[#f3f4f6] px-3 py-1.5 text-xs font-semibold">{label} {value.toFixed(1)}/5</span>}

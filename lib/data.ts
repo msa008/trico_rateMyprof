@@ -51,7 +51,8 @@ export async function getProfessor(slug: string) {
     supabase.from("professor_courses_public").select("*").eq("professor_id", result.data.id),
     supabase.from("public_questions").select("*").eq("professor_id", result.data.id).limit(10),
   ]);
-  return { professor: result.data as Professor, reviews: await attachReviewThreads(supabase,reviews.data as Review[] ?? []), courses: courses.data as Course[] ?? [], questions: questions.data as Question[] ?? [], demo: false };
+  const professorReviews=(reviews.data as Review[]??[]);const professorCourses=(courses.data as Course[]??[]).map(course=>({...course,review_count:professorReviews.filter(review=>review.course_id===course.id).length}));
+  return { professor: result.data as Professor, reviews: await attachReviewThreads(supabase,professorReviews), courses: professorCourses, questions: questions.data as Question[] ?? [], demo: false };
 }
 
 export async function getCourse(slug: string) {
