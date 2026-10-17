@@ -1,0 +1,12 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { BookOpen,Users } from "lucide-react";
+import { getDepartmentData } from "@/lib/data";
+import { CourseCard,ProfessorCard } from "@/components/entity-cards";
+import { DemoBanner } from "@/components/demo-banner";
+import { PageHeading } from "@/components/page-heading";
+import { Button } from "@/components/ui/button";
+
+export default async function DepartmentPage({params}:{params:Promise<{college:string;code:string}>}){const{college,code}=await params;const data=await getDepartmentData(college,code);if(!data)notFound();return <><DemoBanner show={data.demo}/><div className="container py-12"><PageHeading eyebrow={<Link className="hover:underline" href={`/colleges/${data.college.slug}`}>{data.college.name}</Link>} title={`${data.department.name} (${data.department.code})`} description={`Browse professors and courses in the ${data.department.name} department.`} actions={<Button asChild><Link href="/reviews/new">Write a review</Link></Button>}/><div className="mt-8 grid gap-4 sm:grid-cols-2"><Stat icon={<Users/>} value={data.professors.length} label="Professors"/><Stat icon={<BookOpen/>} value={data.courses.length} label="Courses"/></div><section className="mt-14"><h2 className="display text-3xl font-medium">Professors</h2><div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">{data.professors.length?data.professors.map(p=><ProfessorCard key={p.id} professor={p}/>):<Empty text="No professors are listed in this department yet."/>}</div></section><section className="mt-14"><h2 className="display text-3xl font-medium">Courses</h2><div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">{data.courses.length?data.courses.map(c=><CourseCard key={c.id} course={c}/>):<Empty text="No courses are listed in this department yet."/>}</div></section></div></>}
+function Stat({icon,value,label}:{icon:React.ReactNode;value:number;label:string}){return <div className="flex items-center gap-4 rounded-2xl border border-[#dce3fb] bg-white p-5"><span className="grid size-11 place-items-center rounded-xl bg-[#edf1ff] text-[#3159d7] [&>svg]:size-5">{icon}</span><div><strong className="text-2xl text-[#172554]">{value}</strong><p className="text-sm text-[#667085]">{label}</p></div></div>}
+function Empty({text}:{text:string}){return <p className="rounded-2xl border border-dashed border-[#d9deea] bg-white p-8 text-sm text-[#667085] md:col-span-2 lg:col-span-3">{text}</p>}

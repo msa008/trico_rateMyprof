@@ -1,24 +1,26 @@
 import { z } from "zod";
 
 const rating = z.coerce.number().int().min(1).max(5);
+const noPrivateContact = (value:string) => !/(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}|(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}|https?:\/\/)/i.test(value);
+const safeText = (minimum:number,maximum:number) => z.string().trim().min(minimum).max(maximum).refine(noPrivateContact,"Remove email addresses, phone numbers, and private links.");
 export const reviewSchema = z.object({
   professorId: z.string().uuid(), courseId: z.string().uuid(), offeringId: z.string().uuid(),
   semester: z.enum(["Fall", "Spring", "Summer"]), year: z.coerce.number().int().min(2000).max(2100),
   teachingQuality: rating, workload: rating, gradingDifficulty: rating,
   wouldTakeAgain: z.enum(["yes", "no"]).transform((v) => v === "yes"),
   attendanceImportance: z.enum(["Not important", "Somewhat important", "Very important", "Required"]),
-  body: z.string().trim().min(80).max(3000), advice: z.string().trim().max(1000).optional(),
-  wishKnown: z.string().trim().max(1000).optional(), tookCourse: z.literal("on", { message: "Confirm that you took this course." }),
+  body: safeText(80,3000), advice: safeText(0,1000).optional(),
+  wishKnown: safeText(0,1000).optional(), tookCourse: z.literal("on", { message: "Confirm that you took this course." }),
 });
 
 export const questionSchema = z.object({
-  title: z.string().trim().min(10).max(160), body: z.string().trim().min(20).max(2000),
+  title: safeText(10,160), body: safeText(20,2000),
   courseId: z.string().uuid().optional().or(z.literal("")), professorId: z.string().uuid().optional().or(z.literal("")),
   reviewId: z.string().uuid().optional().or(z.literal("")),
 });
 
 export const answerSchema = z.object({
-  questionId: z.string().uuid(), body: z.string().trim().min(10).max(2000),
+  questionId: z.string().uuid(), body: safeText(10,2000),
   parentAnswerId: z.string().uuid().optional().or(z.literal("")),
 });
 

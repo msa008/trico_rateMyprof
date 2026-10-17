@@ -56,15 +56,29 @@ export async function getProfessor(slug: string) {
 
 export async function getCourse(slug: string) {
   const supabase = await createClient();
-  if (!supabase) { const course = demoCourses.find((c) => c.slug === slug); return course ? { course, reviews: demoReviews.filter((r) => r.course_slug === slug), professors: demoProfessors.slice(0, 2), questions: demoQuestions.filter((q) => q.course_slug === slug), demo: true } : null; }
+  if (!supabase) { const course = demoCourses.find((c) => c.slug === slug); return course ? { course, reviews: demoReviews.filter((r) => r.course_slug === slug), professors: demoProfessors.slice(0, 2), questions: demoQuestions.filter((q) => q.course_slug === slug), similarCourses:demoCourses.filter(c=>c.slug!==slug&&c.department_name===course.department_name).slice(0,3), demo: true } : null; }
   const result = await supabase.from("course_rating_summaries").select("*").eq("slug", slug).single();
   if (!result.data) return null;
-  const [reviews, professors, questions] = await Promise.all([
+  const [reviews, professors, questions, similarCourses] = await Promise.all([
     supabase.from("public_reviews").select("*").eq("course_id", result.data.id).order("created_at", { ascending: false }),
     supabase.from("course_professors_public").select("*").eq("course_id", result.data.id),
     supabase.from("public_questions").select("*").eq("course_id", result.data.id).limit(20),
+    supabase.from("course_rating_summaries").select("*").eq("college_slug",result.data.college_slug).eq("department_name",result.data.department_name).neq("id",result.data.id).limit(3),
   ]);
-  return { course: result.data as Course, reviews: await attachReviewThreads(supabase,reviews.data as Review[] ?? []), professors: professors.data as Professor[] ?? [], questions: questions.data as Question[] ?? [], demo: false };
+  return { course: result.data as Course, reviews: await attachReviewThreads(supabase,reviews.data as Review[] ?? []), professors: professors.data as Professor[] ?? [], questions: questions.data as Question[] ?? [], similarCourses:similarCourses.data as Course[]??[], demo: false };
+}
+
+export async function getDepartmentData(collegeSlug:string,code:string){
+  const supabase=await createClient();
+  if(!supabase){const professors=demoProfessors.filter(p=>p.college_slug===collegeSlug&&p.department_code.toLowerCase()===code.toLowerCase());const courses=demoCourses.filter(c=>c.college_slug===collegeSlug&&professors.some(p=>p.department_name===c.department_name));return professors.length||courses.length?{department:{name:professors[0]?.department_name??courses[0]?.department_name??code.toUpperCase(),code:code.toUpperCase()},college:{name:professors[0]?.college_name??courses[0]?.college_name??collegeSlug,slug:collegeSlug},professors,courses,demo:true}:null}
+  const college=await supabase.from("colleges").select("id,name,slug").eq("slug",collegeSlug).single();if(!college.data)return null;
+  const department=await supabase.from("departments").select("id,name,code").eq("college_id",college.data.id).ilike("code",code).single();if(!department.data)return null;
+  const courseIds=await supabase.from("courses").select("id").eq("department_id",department.data.id);
+  const[professors,courses]=await Promise.all([
+    supabase.from("professor_rating_summaries").select("*").eq("college_slug",collegeSlug).eq("department_code",department.data.code).order("display_name").limit(100),
+    courseIds.data?.length?supabase.from("course_rating_summaries").select("*").in("id",courseIds.data.map(row=>row.id)).order("code").limit(100):Promise.resolve({data:[]}),
+  ]);
+  return{department:department.data,college:college.data,professors:(professors.data??[]) as Professor[],courses:(courses.data??[]) as Course[],demo:false};
 }
 
 export async function getReviewContext(id:string){
