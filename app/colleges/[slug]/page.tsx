@@ -1,16 +1,7 @@
-import { notFound } from "next/navigation";
-import Link from "next/link";
-import { BookOpen, Search, Users } from "lucide-react";
-import { colleges } from "@/lib/config";
-import { getCollegeData } from "@/lib/data";
-import { DemoBanner } from "@/components/demo-banner";
-import { CourseCard, ProfessorCard } from "@/components/entity-cards";
-import { PageHeading } from "@/components/page-heading";
-import { ReviewCard } from "@/components/review-card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import{notFound}from"next/navigation";
+import{colleges}from"@/lib/config";
+import{getCollegeData}from"@/lib/data";
+import{CollegeDirectory}from"@/components/college-directory";
+import{DemoBanner}from"@/components/demo-banner";
 
-export default async function CollegePage({ params }: { params: Promise<{slug: string}> }) { const { slug } = await params; const meta = colleges.find((c) => c.slug === slug); const data = await getCollegeData(slug); if (!meta || !data) notFound(); return <><DemoBanner show={data.demo}/><div className="container py-12"><PageHeading eyebrow="College directory" title={meta.name} description="Explore departments, professors, courses, and the latest student context from this campus." actions={<Button asChild><Link href="/reviews/new">Write a review</Link></Button>}/><div className="mt-8 flex flex-col gap-3 sm:flex-row"><div className="relative flex-1"><Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#667085]"/><Input className="pl-10" placeholder={`Search ${meta.name}...`}/></div><select className="focus-ring h-11 rounded-xl border border-[#dfe3ec] bg-white px-4 text-sm"><option>All departments</option>{data.departments.map((d: {code: string; name: string}) => <option key={d.code}>{d.name}</option>)}</select></div><div className="mt-10 grid gap-4 lg:grid-cols-3"><Stat icon={<Users/>} value={data.professors.length || "—"} label="Professors in view"/><Stat icon={<BookOpen/>} value={data.courses.length || "—"} label="Courses in view"/><Stat icon={<span className="text-lg">#</span>} value={data.departments.length || "—"} label="Departments"/></div><section className="mt-14"><Heading title="Departments"/><div className="mt-5 flex flex-wrap gap-2">{data.departments.map((d: {code: string; name: string}) => <Link key={d.code} href={`/departments/${slug}/${d.code.toLowerCase()}`}><Badge className="bg-white px-3 py-2 text-[#344054] ring-1 ring-[#e5e8ef] transition hover:border-[#9db0ed] hover:bg-[#f5f7ff] hover:text-[#2447b6]">{d.code} · {d.name}</Badge></Link>)}</div></section><section className="mt-14"><Heading title="Professors"/><div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">{data.professors.map((p) => <ProfessorCard key={p.id} professor={p}/>)}</div></section><section className="mt-14"><Heading title="Courses"/><div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">{data.courses.map((c) => <CourseCard key={c.id} course={c}/>)}</div></section>{data.reviews.length > 0 && <section className="mt-14"><Heading title="Recent reviews"/><div className="mt-5 grid gap-4">{data.reviews.map((r) => <ReviewCard key={r.id} review={r}/>)}</div></section>}</div></> }
-function Heading({title}:{title:string}) { return <h2 className="display text-3xl font-medium">{title}</h2> }
-function Stat({icon,value,label}:{icon:React.ReactNode;value:number|string;label:string}) { return <div className="flex items-center gap-4 rounded-2xl border border-[#e5e8ef] bg-white p-5"><span className="grid size-10 place-items-center rounded-xl bg-[#edf1ff] text-[#3159d7] [&>svg]:size-4">{icon}</span><div><strong className="text-xl">{value}</strong><p className="text-sm text-[#667085]">{label}</p></div></div> }
+export default async function CollegePage({params}:{params:Promise<{slug:string}>}){const{slug}=await params;const meta=colleges.find(college=>college.slug===slug);const data=await getCollegeData(slug);if(!meta||!data)notFound();return <><DemoBanner show={data.demo}/><CollegeDirectory college={meta} departments={data.departments} professors={data.professors} courses={data.courses}/></>}
