@@ -14,5 +14,5 @@ export async function GET(request: NextRequest) {
     course_filter: course,
     result_limit: 20,
   });
-  return NextResponse.json(error ? [] : data, { headers: { "Cache-Control": "public, max-age=30" } });
+  return NextResponse.json(error ? [] : data, { headers: { "Cache-Control": "private, no-store" } });
 }

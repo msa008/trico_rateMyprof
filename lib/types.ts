@@ -20,4 +20,5 @@ export type Question = {
   id: string; title: string; body: string; alias: string; college_name?: string; department_code?: string;
   course_code?: string; course_slug?: string; professor_name?: string; review_id?:string|null; answer_count: number; helpful_count: number; created_at: string; answers?:Answer[];
 };
-export type ReviewOption = { offeringId: string; professorId: string; professorName: string; courseId: string; courseCode: string; courseTitle: string; collegeName: string; semester: "Fall"|"Spring"|"Summer"; year: number };
+export type ReviewOption = { offeringId: string; professorId: string; professorName: string; courseId: string; courseCode: string; courseTitle: string; collegeName: string; semester: "Fall"|"Spring"|"Summer"; year: number; catalogVerified?: boolean };
+export type AnonymousNotification = { id:string; type:string; title:string; body:string|null; target_path:string|null; read_at:string|null; created_at:string };

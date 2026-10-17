@@ -1,6 +1,8 @@
 import { createClient } from "./supabase/server";
+import { createAdminClient } from "./supabase/admin";
+import { getAnonymousContributorHash } from "./anonymous-session";
 import { demoCourses, demoDepartments, demoProfessors, demoQuestions, demoReviews } from "./demo-data";
-import type { Course, Professor, Question, Review, ReviewOption } from "./types";
+import type { AnonymousNotification, Answer, Course, Professor, Question, Review, ReviewOption } from "./types";
 
 export const isDemoMode = () => !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
@@ -85,6 +87,30 @@ export async function getQuestion(id: string) {
   if (!question.data) return null;
   const answers = await supabase.from("public_answers").select("*").eq("question_id", id).order("created_at");
   return { question: question.data as Question, answers: answers.data ?? [], demo: false };
+}
+
+export async function getMyActivity(){
+  const contributorHash=await getAnonymousContributorHash(false);const supabase=createAdminClient();
+  if(!contributorHash||!supabase)return{hasSession:false,reviews:[] as Review[],questions:[] as Question[],answers:[] as Answer[],notifications:[] as AnonymousNotification[]};
+  const[ownedReviews,ownedQuestions,ownedAnswers,notificationResult]=await Promise.all([
+    supabase.from("reviews").select("id").eq("contributor_hash",contributorHash).order("created_at",{ascending:false}).limit(50),
+    supabase.from("questions").select("id").eq("contributor_hash",contributorHash).order("created_at",{ascending:false}).limit(50),
+    supabase.from("answers").select("id").eq("contributor_hash",contributorHash).order("created_at",{ascending:false}).limit(50),
+    supabase.from("notifications").select("id,type,title,body,target_path,read_at,created_at").eq("contributor_hash",contributorHash).order("created_at",{ascending:false}).limit(50),
+  ]);
+  const reviewIds=(ownedReviews.data??[]).map(row=>row.id);const questionIds=(ownedQuestions.data??[]).map(row=>row.id);const answerIds=(ownedAnswers.data??[]).map(row=>row.id);
+  const[reviewResult,questionResult,answerResult]=await Promise.all([
+    reviewIds.length?supabase.from("public_reviews").select("*").in("id",reviewIds):Promise.resolve({data:[]}),
+    questionIds.length?supabase.from("public_questions").select("*").in("id",questionIds):Promise.resolve({data:[]}),
+    answerIds.length?supabase.from("public_answers").select("*").in("id",answerIds):Promise.resolve({data:[]}),
+  ]);
+  return{hasSession:true,reviews:(reviewResult.data??[]) as Review[],questions:(questionResult.data??[]) as Question[],answers:(answerResult.data??[]) as Answer[],notifications:(notificationResult.data??[]) as AnonymousNotification[]};
+}
+
+export async function getUnreadNotificationCount(){
+  const contributorHash=await getAnonymousContributorHash(false);const supabase=createAdminClient();if(!contributorHash||!supabase)return 0;
+  const{count}=await supabase.from("notifications").select("id",{count:"exact",head:true}).eq("contributor_hash",contributorHash).is("read_at",null);
+  return count??0;
 }
 
 export async function getReviewOptions():Promise<{options:ReviewOption[];demo:boolean}>{

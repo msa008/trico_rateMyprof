@@ -27,3 +27,14 @@ export const reportSchema = z.object({
   reason: z.enum(["harassment", "spam", "personal_information", "misleading", "inappropriate", "other"]),
   details: z.string().trim().max(500).optional(),
 });
+
+export const communityCatalogSchema = z.object({
+  collegeSlug: z.enum(["haverford", "bryn-mawr", "swarthmore"]),
+  courseCode: z.string().trim().transform((value) => value.toUpperCase().replace(/\s+/g, " ")).pipe(
+    z.string().regex(/^[A-Z]{2,10} [A-Z]?[0-9]{2,4}[A-Z]?$/, "Use a code like ECON H105, MATH B101, or CPSC 021."),
+  ),
+  courseTitle: z.string().trim().min(3).max(160),
+  professorName: z.string().trim().min(3).max(120),
+  semester: z.enum(["Fall", "Spring", "Summer"]),
+  year: z.coerce.number().int().min(2000).max(2100),
+});

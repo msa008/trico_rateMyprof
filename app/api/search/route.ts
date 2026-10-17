@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim().slice(0, 80) ?? "";
   if (q.length < 1) return NextResponse.json([]);
   const supabase = await createClient();
-  if (supabase) { const { data, error } = await supabase.rpc("search_catalog", { search_term: q, result_limit: 12 }); return NextResponse.json(error ? [] : data, { headers: { "Cache-Control": "public, max-age=30" } }); }
+  if (supabase) { const { data, error } = await supabase.rpc("search_catalog", { search_term: q, result_limit: 12 }); return NextResponse.json(error ? [] : data, { headers: { "Cache-Control": "private, no-store" } }); }
   const lq = q.toLowerCase();
   const results = [
     ...demoProfessors.filter((p) => `${p.display_name} ${p.department_name}`.toLowerCase().includes(lq)).map((p) => ({ id: p.id, type: "professor", title: p.display_name, subtitle: `${p.department_name} · ${p.college_name}`, slug: p.slug })),

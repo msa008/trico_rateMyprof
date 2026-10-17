@@ -1,9 +1,9 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
-import { createHmac, randomUUID } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { answerSchema, questionSchema, reportSchema, reviewSchema } from "@/lib/validation";
+import { getAnonymousContributorHash } from "@/lib/anonymous-session";
+import { answerSchema, communityCatalogSchema, questionSchema, reportSchema, reviewSchema } from "@/lib/validation";
+import type { ReviewOption } from "@/lib/types";
 
 export type ActionState = { ok: boolean; message: string; fieldErrors?: Record<string, string[]> };
 const setupError: ActionState = { ok: false, message: "Anonymous submissions are not configured yet. Add the Supabase server credentials to enable them." };
@@ -12,15 +12,33 @@ function fields(error: { flatten: () => { fieldErrors: Record<string, string[]> 
 async function anonymousContext() {
   const supabase = createAdminClient();
   if (!supabase) return { supabase: null, contributorHash: "", error: setupError };
-  const jar = await cookies();
-  let sessionId = jar.get("trico_anonymous_session")?.value;
-  if (!sessionId) {
-    sessionId = randomUUID();
-    jar.set("trico_anonymous_session", sessionId, { httpOnly: true, sameSite: "strict", secure: process.env.NODE_ENV === "production", maxAge: 60 * 60 * 24 * 365, path: "/" });
-  }
-  const secret = process.env.RATE_LIMIT_SECRET ?? process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  const contributorHash = createHmac("sha256", secret).update(sessionId).digest("hex");
+  const contributorHash = await getAnonymousContributorHash(true);
+  if (!contributorHash) return { supabase: null, contributorHash: "", error: setupError };
   return { supabase, contributorHash, error: null };
+}
+
+type CatalogActionState = ActionState & { option?: ReviewOption };
+export async function createCommunityCatalogOptionAction(raw: unknown): Promise<CatalogActionState> {
+  const parsed = communityCatalogSchema.safeParse(raw);
+  if (!parsed.success) return { ok:false, message:"Check the course details and examples.", fieldErrors:fields(parsed.error) };
+  const context = await anonymousContext(); if (context.error || !context.supabase) return context.error!;
+  const { data, error } = await context.supabase.rpc("create_community_catalog_option", {
+    p_contributor_hash:context.contributorHash, p_college_slug:parsed.data.collegeSlug,
+    p_course_code:parsed.data.courseCode, p_course_title:parsed.data.courseTitle,
+    p_professor_name:parsed.data.professorName, p_semester:parsed.data.semester, p_year:parsed.data.year,
+  });
+  if (error || !data?.[0]) return { ok:false, message:error?.message ?? "Could not add that class." };
+  const row=data[0];
+  const option:ReviewOption={offeringId:row.offering_id,professorId:row.professor_id,professorName:row.professor_name,courseId:row.course_id,courseCode:row.course_code,courseTitle:row.course_title,collegeName:row.college_name,semester:row.semester,year:row.year,catalogVerified:row.catalog_verified};
+  revalidatePath("/");
+  return { ok:true, message:"Added as a community entry. You can review it now.", option };
+}
+
+export async function markNotificationsReadAction():Promise<ActionState>{
+  const contributorHash=await getAnonymousContributorHash(false);const supabase=createAdminClient();
+  if(!contributorHash||!supabase)return{ok:false,message:"No browser activity found."};
+  const{error}=await supabase.from("notifications").update({read_at:new Date().toISOString()}).eq("contributor_hash",contributorHash).is("read_at",null);
+  if(error)return{ok:false,message:error.message};revalidatePath("/activity");return{ok:true,message:"Notifications marked as read."};
 }
 
 export async function submitReviewAction(raw: unknown): Promise<ActionState> {
