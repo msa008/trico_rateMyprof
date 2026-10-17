@@ -66,13 +66,14 @@ This is anonymity from other visitors, not guaranteed anonymity from the deploym
 
 ## Catalog import
 
-Use `data/catalog.example.json` as the format for verified public catalog information, then run:
+The production catalog is generated from the official public [Tri-Co Course Search](https://www.brynmawr.edu/inside/academic-information/registrar/tri-co-course-search). It currently includes Fall 2025 through Spring 2027 offerings from all three colleges, without storing instructor email addresses. To refresh the generated migration when the registrar updates its public data, run:
 
 ```bash
-npm run catalog:import -- /absolute/path/to/catalog.json
+npm run catalog:generate -- supabase/migrations/YOUR_NEW_TIMESTAMP_import_trico_catalog.sql
+supabase db push
 ```
 
-The importer requires `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. Verify catalog licensing and accuracy before importing. Demo names are fictional and demo seed data does not invent reviews.
+The generator deduplicates courses, sections, and instructors, then produces a reviewable SQL migration. The older `catalog:import` command remains available for licensed JSON datasets. Verify source terms and spot-check catalog accuracy before each refresh. Demo names are fictional and demo seed data does not invent reviews.
 
 ## Moderation
 

@@ -35,7 +35,9 @@ export async function submitQuestionAction(raw: unknown): Promise<ActionState> {
   const parsed = questionSchema.safeParse(raw); if(!parsed.success) return {ok:false,message:"Review the question fields.",fieldErrors:fields(parsed.error)};
   const context=await anonymousContext(); if(context.error||!context.supabase) return context.error!;
   const rate=await context.supabase.rpc("check_anonymous_rate_limit",{p_contributor_hash:context.contributorHash,p_action:"question",p_max:8,p_window_seconds:86400}); if(rate.error)return{ok:false,message:rate.error.message};
-  const {error}=await context.supabase.from("questions").insert({title:parsed.data.title,body:parsed.data.body,course_id:parsed.data.courseId||null,professor_id:parsed.data.professorId||null,review_id:parsed.data.reviewId||null,contributor_hash:context.contributorHash});
+  let courseId=parsed.data.courseId||null;let professorId=parsed.data.professorId||null;
+  if(parsed.data.reviewId){const{data:review}=await context.supabase.from("reviews").select("course_id,professor_id").eq("id",parsed.data.reviewId).single();if(!review)return{ok:false,message:"That review could not be found."};courseId=review.course_id;professorId=review.professor_id;}
+  const {error}=await context.supabase.from("questions").insert({title:parsed.data.title,body:parsed.data.body,course_id:courseId,professor_id:professorId,review_id:parsed.data.reviewId||null,contributor_hash:context.contributorHash});
   if(error) return {ok:false,message:error.message}; revalidatePath("/questions"); return {ok:true,message:"Question posted."};
 }
 

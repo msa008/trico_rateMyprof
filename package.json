@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "catalog:import": "node scripts/import-catalog.mjs"
+    "catalog:import": "node scripts/import-catalog.mjs",
+    "catalog:generate": "node scripts/generate-trico-catalog.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

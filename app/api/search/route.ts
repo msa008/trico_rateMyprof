@@ -5,7 +5,7 @@ import { colleges } from "@/lib/config";
 
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim().slice(0, 80) ?? "";
-  if (q.length < 2) return NextResponse.json([]);
+  if (q.length < 1) return NextResponse.json([]);
   const supabase = await createClient();
   if (supabase) { const { data, error } = await supabase.rpc("search_catalog", { search_term: q, result_limit: 12 }); return NextResponse.json(error ? [] : data, { headers: { "Cache-Control": "public, max-age=30" } }); }
   const lq = q.toLowerCase();

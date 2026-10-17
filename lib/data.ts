@@ -4,6 +4,16 @@ import type { Course, Professor, Question, Review, ReviewOption } from "./types"
 
 export const isDemoMode = () => !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
+async function attachReviewThreads(supabase:NonNullable<Awaited<ReturnType<typeof createClient>>>,reviews:Review[]){
+  if(!reviews.length)return reviews;
+  const questionResult=await supabase.from("public_questions").select("*").in("review_id",reviews.map(r=>r.id)).order("created_at");
+  const questions=(questionResult.data??[]) as Question[];
+  if(!questions.length)return reviews;
+  const answerResult=await supabase.from("public_answers").select("*").in("question_id",questions.map(q=>q.id)).order("created_at");
+  const answers=answerResult.data??[];
+  return reviews.map(review=>({...review,questions:questions.filter(q=>q.review_id===review.id).map(q=>({...q,answers:answers.filter(a=>a.question_id===q.id)}))}));
+}
+
 export async function getHomeData() {
   const supabase = await createClient();
   if (!supabase) return { professors: demoProfessors, courses: demoCourses, questions: demoQuestions, demo: true };
@@ -39,7 +49,7 @@ export async function getProfessor(slug: string) {
     supabase.from("professor_courses_public").select("*").eq("professor_id", result.data.id),
     supabase.from("public_questions").select("*").eq("professor_id", result.data.id).limit(10),
   ]);
-  return { professor: result.data as Professor, reviews: reviews.data as Review[] ?? [], courses: courses.data as Course[] ?? [], questions: questions.data as Question[] ?? [], demo: false };
+  return { professor: result.data as Professor, reviews: await attachReviewThreads(supabase,reviews.data as Review[] ?? []), courses: courses.data as Course[] ?? [], questions: questions.data as Question[] ?? [], demo: false };
 }
 
 export async function getCourse(slug: string) {
@@ -52,7 +62,13 @@ export async function getCourse(slug: string) {
     supabase.from("course_professors_public").select("*").eq("course_id", result.data.id),
     supabase.from("public_questions").select("*").eq("course_id", result.data.id).limit(20),
   ]);
-  return { course: result.data as Course, reviews: reviews.data as Review[] ?? [], professors: professors.data as Professor[] ?? [], questions: questions.data as Question[] ?? [], demo: false };
+  return { course: result.data as Course, reviews: await attachReviewThreads(supabase,reviews.data as Review[] ?? []), professors: professors.data as Professor[] ?? [], questions: questions.data as Question[] ?? [], demo: false };
+}
+
+export async function getReviewContext(id:string){
+  const supabase=await createClient();if(!supabase)return null;
+  const{data}=await supabase.from("public_reviews").select("id,professor_name,course_code,semester,year,body").eq("id",id).single();
+  return data;
 }
 
 export async function getQuestions() {

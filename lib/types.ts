@@ -13,10 +13,11 @@ export type Review = {
   id: string; alias: string; professor_name: string; professor_slug: string; course_code: string; course_slug: string;
   semester: string; year: number; teaching_quality: number; workload: number; grading_difficulty: number;
   would_take_again: boolean; attendance_importance: string; body: string; advice: string | null;
-  wish_known: string | null; helpful_count: number; created_at: string;
+  wish_known: string | null; helpful_count: number; created_at: string; questions?: Question[];
 };
+export type Answer = { id:string; question_id:string; parent_answer_id?:string|null; alias:string; body:string; helpful_count:number; created_at:string };
 export type Question = {
   id: string; title: string; body: string; alias: string; college_name?: string; department_code?: string;
-  course_code?: string; course_slug?: string; professor_name?: string; answer_count: number; helpful_count: number; created_at: string;
+  course_code?: string; course_slug?: string; professor_name?: string; review_id?:string|null; answer_count: number; helpful_count: number; created_at: string; answers?:Answer[];
 };
 export type ReviewOption = { offeringId: string; professorId: string; professorName: string; courseId: string; courseCode: string; courseTitle: string; collegeName: string; semester: "Fall"|"Spring"|"Summer"; year: number };
