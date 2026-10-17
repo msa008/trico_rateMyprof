@@ -96,7 +96,7 @@ export async function getQuestions() {
 
 export async function getQuestion(id: string) {
   const supabase = await createClient();
-  if (!supabase) { const question = demoQuestions.find((q) => q.id === id); return question ? { question, answers: question.answer_count ? [{ id: "abababab-abab-4bab-8bab-abababababab", alias: "studybadger204", body: "Demonstration answer: basic algebra is enough for most of the course. The harder part is translating word problems into a model, so practicing that step is more useful than reviewing advanced math.", helpful_count: 12, created_at: "2026-10-06T10:00:00Z", parent_answer_id: null }] : [], demo: true } : null; }
+  if (!supabase) { const question = demoQuestions.find((q) => q.id === id); return question ? { question, answers: question.answer_count ? [{ id: "abababab-abab-4bab-8bab-abababababab", body: "Demonstration answer: basic algebra is enough for most of the course. The harder part is translating word problems into a model, so practicing that step is more useful than reviewing advanced math.", helpful_count: 12, created_at: "2026-10-06T10:00:00Z", parent_answer_id: null }] : [], demo: true } : null; }
   const question = await supabase.from("public_questions").select("*").eq("id", id).single();
   if (!question.data) return null;
   const answers = await supabase.from("public_answers").select("*").eq("question_id", id).order("created_at");

@@ -5,7 +5,7 @@ import { getAnonymousContributorHash } from "@/lib/anonymous-session";
 import { answerSchema, communityCatalogSchema, questionSchema, reportSchema, reviewEditSchema, reviewSchema } from "@/lib/validation";
 import type { ReviewOption } from "@/lib/types";
 
-export type ActionState = { ok: boolean; message: string; fieldErrors?: Record<string, string[]> };
+export type ActionState = { ok: boolean; message: string; fieldErrors?: Record<string, string[]>; redirectTo?:string };
 const setupError: ActionState = { ok: false, message: "Anonymous submissions are not configured yet. Add the Supabase server credentials to enable them." };
 
 function fields(error: { flatten: () => { fieldErrors: Record<string, string[]> } }) { return error.flatten().fieldErrors; }
@@ -44,9 +44,10 @@ export async function markNotificationsReadAction():Promise<ActionState>{
 export async function submitReviewAction(raw: unknown): Promise<ActionState> {
   const parsed = reviewSchema.safeParse(raw); if (!parsed.success) { const fieldErrors=fields(parsed.error); return { ok:false, message:`Please check: ${Object.keys(fieldErrors).join(", ") || "the review form"}.`, fieldErrors }; }
   const context = await anonymousContext(); if (context.error || !context.supabase) return context.error!;
-  const { error } = await context.supabase.rpc("submit_anonymous_review", { p_contributor_hash: context.contributorHash, p_professor_id: parsed.data.professorId, p_course_id: parsed.data.courseId, p_offering_id: parsed.data.offeringId, p_semester: parsed.data.semester, p_year: parsed.data.year, p_teaching_quality: parsed.data.teachingQuality, p_workload: parsed.data.workload, p_grading_difficulty: parsed.data.gradingDifficulty, p_would_take_again: parsed.data.wouldTakeAgain, p_attendance_importance: parsed.data.attendanceImportance, p_grade_status:parsed.data.gradeStatus, p_descriptors:parsed.data.descriptors, p_body: parsed.data.body, p_advice: parsed.data.advice || null, p_wish_known: parsed.data.wishKnown || null });
+  const { data:reviewId,error } = await context.supabase.rpc("submit_anonymous_review", { p_contributor_hash: context.contributorHash, p_professor_id: parsed.data.professorId, p_course_id: parsed.data.courseId, p_offering_id: parsed.data.offeringId, p_semester: parsed.data.semester, p_year: parsed.data.year, p_teaching_quality: parsed.data.teachingQuality, p_workload: parsed.data.workload, p_grading_difficulty: parsed.data.gradingDifficulty, p_would_take_again: parsed.data.wouldTakeAgain, p_attendance_importance: parsed.data.attendanceImportance, p_grade_status:parsed.data.gradeStatus, p_descriptors:parsed.data.descriptors, p_body: parsed.data.body, p_advice: parsed.data.advice || null, p_wish_known: parsed.data.wishKnown || null });
   if (error) return { ok:false, message: error.code === "23505" ? "This browser already reviewed that professor-course-semester combination." : error.message };
-  revalidatePath("/"); return { ok:true, message:"Review published anonymously." };
+  const{data:published}=await context.supabase.from("public_reviews").select("professor_slug").eq("id",reviewId).maybeSingle();const redirectTo=published?.professor_slug?`/professors/${published.professor_slug}?submitted=review#reviews`:"/dashboard?submitted=review";
+  revalidatePath("/");if(published?.professor_slug)revalidatePath(`/professors/${published.professor_slug}`);return { ok:true, message:"Review published anonymously.",redirectTo };
 }
 
 export async function updateReviewAction(raw:unknown):Promise<ActionState>{
@@ -70,8 +71,8 @@ export async function submitQuestionAction(raw: unknown): Promise<ActionState> {
   const rate=await context.supabase.rpc("check_anonymous_rate_limit",{p_contributor_hash:context.contributorHash,p_action:"question",p_max:8,p_window_seconds:86400}); if(rate.error)return{ok:false,message:rate.error.message};
   let courseId=parsed.data.courseId||null;let professorId=parsed.data.professorId||null;
   if(parsed.data.reviewId){const{data:review}=await context.supabase.from("reviews").select("course_id,professor_id").eq("id",parsed.data.reviewId).single();if(!review)return{ok:false,message:"That review could not be found."};courseId=review.course_id;professorId=review.professor_id;}
-  const {error}=await context.supabase.from("questions").insert({title:parsed.data.title,body:parsed.data.body,course_id:courseId,professor_id:professorId,review_id:parsed.data.reviewId||null,contributor_hash:context.contributorHash});
-  if(error) return {ok:false,message:error.message}; revalidatePath("/questions"); return {ok:true,message:"Question posted."};
+  const {data:question,error}=await context.supabase.from("questions").insert({title:parsed.data.title,body:parsed.data.body,course_id:courseId,professor_id:professorId,review_id:parsed.data.reviewId||null,contributor_hash:context.contributorHash}).select("id").single();
+  if(error||!question) return {ok:false,message:error?.message??"The question could not be posted."}; revalidatePath("/questions");return {ok:true,message:"Question posted anonymously.",redirectTo:`/questions/${question.id}?submitted=question`};
 }
 
 export async function submitAnswerAction(raw: unknown): Promise<ActionState> { const parsed=answerSchema.safeParse(raw); if(!parsed.success) return {ok:false,message:"Answer must be 10–2,000 characters.",fieldErrors:fields(parsed.error)}; const context=await anonymousContext(); if(context.error||!context.supabase)return context.error!; const rate=await context.supabase.rpc("check_anonymous_rate_limit",{p_contributor_hash:context.contributorHash,p_action:"answer",p_max:20,p_window_seconds:86400});if(rate.error)return{ok:false,message:rate.error.message};const {error}=await context.supabase.from("answers").insert({question_id:parsed.data.questionId,body:parsed.data.body,parent_answer_id:parsed.data.parentAnswerId||null,contributor_hash:context.contributorHash}); if(error)return {ok:false,message:error.message}; revalidatePath(`/questions/${parsed.data.questionId}`); return {ok:true,message:"Answer posted anonymously."}; }

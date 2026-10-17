@@ -51,7 +51,7 @@ export function ReviewCard({ review }: { review: Review }) {
           </div>
           <div className="mt-3 flex items-center gap-2 text-xs text-[#667085]">
             <span className="size-2 rounded-full bg-[#3159d7]" />
-            <span>Posted as <strong>@{review.alias}</strong></span>
+            <span><strong>Anonymous student</strong></span>
             <span>·</span>
             <span>{review.would_take_again ? "Would take again" : "Would not take again"}</span>
           </div>
@@ -62,13 +62,13 @@ export function ReviewCard({ review }: { review: Review }) {
                 {review.questions.map((question) => (
                   <div key={question.id} className="rounded-xl bg-white p-4 ring-1 ring-[#e5e8ef]">
                     <div className="flex flex-wrap items-center gap-2 text-xs text-[#667085]">
-                      <strong>@{question.alias}</strong><span>·</span><span>{formatDate(question.created_at)}</span>
+                      <strong>Anonymous student</strong><span>·</span><span>{formatDate(question.created_at)}</span>
                     </div>
                     <Link href={`/questions/${question.id}`} className="mt-2 block font-semibold hover:text-[#3159d7]">{question.title}</Link>
                     <p className="mt-1 text-sm leading-relaxed text-[#475467]">{question.body}</p>
                     {question.answers?.map((answer) => (
                       <div key={answer.id} className="mt-3 border-l-2 border-[#cfd9ff] pl-3 text-sm">
-                        <p className="text-xs font-semibold text-[#667085]">@{answer.alias}</p>
+                        <p className="text-xs font-semibold text-[#667085]">Anonymous student</p>
                         <p className="mt-1 text-[#344054]">{answer.body}</p>
                       </div>
                     ))}

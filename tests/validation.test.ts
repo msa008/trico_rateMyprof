@@ -32,6 +32,7 @@ describe("content validation", () => {
   it("enforces review length", () => expect(reviewSchema.safeParse({ ...review, body: "Too short" }).success).toBe(false));
   it("blocks private contact information", () => expect(reviewSchema.safeParse({ ...review, body: `${review.body} Contact me at student@example.com.` }).success).toBe(false));
   it("validates questions", () => expect(questionSchema.safeParse({ title: "Is the workload manageable?", body: "I am balancing this with two laboratory courses.", courseId: "" }).success).toBe(true));
+  it("allows a question without extra details", () => expect(questionSchema.safeParse({ title: "Is attendance required?", body: "", courseId: "" }).success).toBe(true));
   it("restricts report reasons", () => expect(reportSchema.safeParse({ targetType: "review", targetId: review.courseId, reason: "disagreement" }).success).toBe(false));
   it("accepts Tri-Co course-code examples", () => {
     for (const courseCode of ["ECON H105", "MATH B101", "CPSC 021"]) {
