@@ -1,9 +1,8 @@
 import Link from "next/link";
 import {notFound}from "next/navigation";
-import {MessageCircle,Star}from "lucide-react";
+import {Star}from "lucide-react";
 import{getProfessor}from "@/lib/data";
 import{DemoBanner}from "@/components/demo-banner";
-import{QuestionCard}from "@/components/entity-cards";
 import{ProfessorReviewList}from "@/components/professor-review-list";
 import{Button}from "@/components/ui/button";
 
@@ -19,7 +18,6 @@ export default async function ProfessorPage({params}:{params:Promise<{slug:strin
     <div><h2 className="display text-4xl font-semibold">Courses taught</h2><div className="mt-3 border-t border-[#d8dde6]">{data.courses.length?data.courses.slice(0,6).map(course=><Link href={`/courses/${course.slug}`} key={course.id} className="group flex items-center justify-between gap-5 border-b border-[#d8dde6] py-4"><span className="font-bold group-hover:text-[#a91d35] group-hover:underline">{course.code} · {course.title}</span><span className="shrink-0 text-sm text-[#566174]">{course.review_count?`${course.review_count} ${course.review_count===1?"review":"reviews"}`:"No reviews"}</span></Link>):<p className="border-b border-[#d8dde6] py-5 text-[#667085]">No course records yet.</p>}</div>{data.courses.length>6&&<Link href={departmentHref} className="mt-4 inline-block font-bold text-[#a91d35] underline">Show all {data.courses.length} courses</Link>}</div>
   </section>
   <section id="reviews" className="scroll-mt-28 pt-12"><div><h2 className="display text-4xl font-semibold">Student reviews</h2><p className="mt-1 text-sm text-[#667085]">Anonymous, experience-based feedback about this professor and class.</p></div><div className="mt-5">{data.reviews.length?<ProfessorReviewList reviews={data.reviews}/>:<Empty title="Not yet rated" body="Took a course with this professor? Share the first review."/>}</div></section>
-  <section className="mt-14 border-t border-[#d8dde6] pt-10"><div className="flex flex-wrap items-end justify-between gap-4"><div><h2 className="display text-4xl font-semibold">General questions</h2><p className="mt-1 text-sm text-[#667085]">Questions not attached to a specific review.</p></div><Button asChild variant="secondary"><Link href={`/questions/ask?professor=${p.id}`}><MessageCircle className="size-4"/>Ask a question</Link></Button></div><div className="mt-5 grid gap-4 md:grid-cols-2">{data.questions.length?data.questions.map(question=><QuestionCard key={question.id} question={question}/>):<Empty title="No general questions yet" body="Ask something that would help future students, too."/>}</div></section>
 </div></>}
 
 function MetricBar({label,value,color}:{label:string;value:number|null;color:string}){return <div className="grid grid-cols-[150px_1fr_58px] items-center gap-4"><span className="font-medium">{label}</span><span className="h-2.5 overflow-hidden rounded-full bg-[#eceff3]"><span className="block h-full rounded-full" style={{width:`${(value??0)*20}%`,backgroundColor:color}}/></span><strong className="text-right">{value===null?"—":`${value.toFixed(1)}/5`}</strong></div>}

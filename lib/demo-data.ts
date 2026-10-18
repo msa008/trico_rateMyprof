@@ -17,7 +17,7 @@ export const demoReviews: Review[] = [
 ];
 
 export const demoQuestions: Question[] = [
-  { id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee", title: "Is ECON 105 manageable without a strong math background?", body: "I am comfortable with basic algebra but have not taken calculus yet. What should I review before the semester?", college_name: "Haverford College", department_code: "ECON", course_code: "ECON 105", course_slug: "econ-105-demo", answer_count: 4, helpful_count: 21, created_at: "2026-10-05T14:00:00Z" },
+  { id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee", title: "Is ECON 105 manageable without a strong math background?", body: "I am comfortable with basic algebra but have not taken calculus yet. What should I review before the semester?", college_name: "Haverford College", department_code: "ECON", course_code: "ECON 105", course_slug: "econ-105-demo", professor_name: "Demo Professor A", review_id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", answer_count: 0, helpful_count: 21, created_at: "2026-10-05T14:00:00Z" },
   { id: "ffffffff-ffff-4fff-8fff-ffffffffffff", title: "How much weekly reading should I expect in Forms of Narrative?", body: "Trying to balance this with two lab courses. Is the reading load consistent week to week?", college_name: "Swarthmore College", department_code: "ENGL", course_code: "ENGL 071", course_slug: "engl-071-demo", answer_count: 0, helpful_count: 8, created_at: "2026-10-07T18:30:00Z" },
 ];
 

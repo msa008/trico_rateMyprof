@@ -31,8 +31,9 @@ describe("content validation", () => {
   it("allows at most five professor and class descriptions", () => expect(reviewSchema.safeParse({ ...review, descriptors: Array(6).fill("Lecture-heavy") }).success).toBe(false));
   it("enforces review length", () => expect(reviewSchema.safeParse({ ...review, body: "Too short" }).success).toBe(false));
   it("blocks private contact information", () => expect(reviewSchema.safeParse({ ...review, body: `${review.body} Contact me at student@example.com.` }).success).toBe(false));
-  it("validates questions", () => expect(questionSchema.safeParse({ title: "Is the workload manageable?", body: "I am balancing this with two laboratory courses.", courseId: "" }).success).toBe(true));
-  it("allows a question without extra details", () => expect(questionSchema.safeParse({ title: "Is attendance required?", body: "", courseId: "" }).success).toBe(true));
+  it("validates questions attached to reviews", () => expect(questionSchema.safeParse({ title: "Is the workload manageable?", body: "I am balancing this with two laboratory courses.", reviewId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd" }).success).toBe(true));
+  it("allows a question without extra details", () => expect(questionSchema.safeParse({ title: "Is attendance required?", body: "", reviewId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd" }).success).toBe(true));
+  it("rejects standalone questions", () => expect(questionSchema.safeParse({ title: "Is attendance required?", body: "" }).success).toBe(false));
   it("restricts report reasons", () => expect(reportSchema.safeParse({ targetType: "review", targetId: review.courseId, reason: "disagreement" }).success).toBe(false));
   it("accepts Tri-Co course-code examples", () => {
     for (const courseCode of ["ECON H105", "MATH B101", "CPSC 021"]) {

@@ -90,8 +90,8 @@ export async function getReviewContext(id:string){
 
 export async function getQuestions() {
   const supabase = await createClient();
-  if (!supabase) return { questions: demoQuestions, demo: true };
-  const result = await supabase.from("public_questions").select("*").order("created_at", { ascending: false }).range(0, 24);
+  if (!supabase) return { questions: demoQuestions.filter((question) => question.review_id), demo: true };
+  const result = await supabase.from("public_questions").select("*").not("review_id", "is", null).order("created_at", { ascending: false }).range(0, 999);
   return { questions: result.data as Question[] ?? [], demo: false };
 }
 
@@ -116,7 +116,7 @@ export async function getMyActivity(){
   const reviewIds=(ownedReviews.data??[]).map(row=>row.id);const questionIds=(ownedQuestions.data??[]).map(row=>row.id);const answerIds=(ownedAnswers.data??[]).map(row=>row.id);
   const[reviewResult,questionResult,answerResult]=await Promise.all([
     reviewIds.length?supabase.from("public_reviews").select("*").in("id",reviewIds):Promise.resolve({data:[]}),
-    questionIds.length?supabase.from("public_questions").select("*").in("id",questionIds):Promise.resolve({data:[]}),
+    questionIds.length?supabase.from("public_questions").select("*").in("id",questionIds).not("review_id","is",null):Promise.resolve({data:[]}),
     answerIds.length?supabase.from("public_answers").select("*").in("id",answerIds):Promise.resolve({data:[]}),
   ]);
   return{hasSession:true,reviews:(reviewResult.data??[]) as Review[],questions:(questionResult.data??[]) as Question[],answers:(answerResult.data??[]) as Answer[],notifications:(notificationResult.data??[]) as AnonymousNotification[]};

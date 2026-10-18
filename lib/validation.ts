@@ -23,7 +23,7 @@ export const reviewEditSchema = reviewSchema.omit({
 export const questionSchema = z.object({
   title: safeText(10,160), body: safeText(0,2000).optional().default(""),
   courseId: z.string().uuid().optional().or(z.literal("")), professorId: z.string().uuid().optional().or(z.literal("")),
-  reviewId: z.string().uuid().optional().or(z.literal("")),
+  reviewId: z.string().uuid("Choose a review before asking a question."),
 });
 
 export const answerSchema = z.object({
