@@ -2,7 +2,7 @@ import { createClient } from "./supabase/server";
 import { createAdminClient } from "./supabase/admin";
 import { getAnonymousContributorHash } from "./anonymous-session";
 import { demoCourses, demoDepartments, demoProfessors, demoQuestions, demoReviews } from "./demo-data";
-import type { AnonymousNotification, Answer, Course, Professor, Question, Review, ReviewOption } from "./types";
+import type { Answer, Course, Professor, Question, Review, ReviewOption } from "./types";
 
 export const isDemoMode = () => !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
@@ -106,12 +106,11 @@ export async function getQuestion(id: string) {
 
 export async function getMyActivity(){
   const contributorHash=await getAnonymousContributorHash(false);const supabase=createAdminClient();
-  if(!contributorHash||!supabase)return{hasSession:false,reviews:[] as Review[],questions:[] as Question[],answers:[] as Answer[],notifications:[] as AnonymousNotification[]};
-  const[ownedReviews,ownedQuestions,ownedAnswers,notificationResult]=await Promise.all([
+  if(!contributorHash||!supabase)return{hasSession:false,reviews:[] as Review[],questions:[] as Question[],answers:[] as Answer[]};
+  const[ownedReviews,ownedQuestions,ownedAnswers]=await Promise.all([
     supabase.from("reviews").select("id").eq("contributor_hash",contributorHash).order("created_at",{ascending:false}).limit(50),
     supabase.from("questions").select("id").eq("contributor_hash",contributorHash).order("created_at",{ascending:false}).limit(50),
     supabase.from("answers").select("id").eq("contributor_hash",contributorHash).order("created_at",{ascending:false}).limit(50),
-    supabase.from("notifications").select("id,type,title,body,target_path,read_at,created_at").eq("contributor_hash",contributorHash).order("created_at",{ascending:false}).limit(50),
   ]);
   const reviewIds=(ownedReviews.data??[]).map(row=>row.id);const questionIds=(ownedQuestions.data??[]).map(row=>row.id);const answerIds=(ownedAnswers.data??[]).map(row=>row.id);
   const[reviewResult,questionResult,answerResult]=await Promise.all([
@@ -119,7 +118,7 @@ export async function getMyActivity(){
     questionIds.length?supabase.from("public_questions").select("*").in("id",questionIds).not("review_id","is",null):Promise.resolve({data:[]}),
     answerIds.length?supabase.from("public_answers").select("*").in("id",answerIds):Promise.resolve({data:[]}),
   ]);
-  return{hasSession:true,reviews:(reviewResult.data??[]) as Review[],questions:(questionResult.data??[]) as Question[],answers:(answerResult.data??[]) as Answer[],notifications:(notificationResult.data??[]) as AnonymousNotification[]};
+  return{hasSession:true,reviews:(reviewResult.data??[]) as Review[],questions:(questionResult.data??[]) as Question[],answers:(answerResult.data??[]) as Answer[]};
 }
 
 export async function getOwnedReview(id:string){
@@ -127,12 +126,6 @@ export async function getOwnedReview(id:string){
   const{data}=await supabase.from("reviews").select("id,semester,year,teaching_quality,workload,grading_difficulty,would_take_again,attendance_importance,grade_status,descriptors,body,advice,wish_known").eq("id",id).eq("contributor_hash",contributorHash).maybeSingle();if(!data)return null;
   const{data:context}=await supabase.from("public_reviews").select("professor_name,course_code,professor_slug").eq("id",id).maybeSingle();
   return{...data,professor_name:context?.professor_name??"Professor",course_code:context?.course_code??"Course",professor_slug:context?.professor_slug??""};
-}
-
-export async function getUnreadNotificationCount(){
-  const contributorHash=await getAnonymousContributorHash(false);const supabase=createAdminClient();if(!contributorHash||!supabase)return 0;
-  const{count}=await supabase.from("notifications").select("id",{count:"exact",head:true}).eq("contributor_hash",contributorHash).is("read_at",null);
-  return count??0;
 }
 
 export async function getReviewOptions():Promise<{options:ReviewOption[];demo:boolean}>{

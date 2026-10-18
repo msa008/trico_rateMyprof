@@ -34,13 +34,6 @@ export async function createCommunityCatalogOptionAction(raw: unknown): Promise<
   return { ok:true, message:"Added as a community entry. You can review it now.", option };
 }
 
-export async function markNotificationsReadAction():Promise<ActionState>{
-  const contributorHash=await getAnonymousContributorHash(false);const supabase=createAdminClient();
-  if(!contributorHash||!supabase)return{ok:false,message:"No browser activity found."};
-  const{error}=await supabase.from("notifications").update({read_at:new Date().toISOString()}).eq("contributor_hash",contributorHash).is("read_at",null);
-  if(error)return{ok:false,message:error.message};revalidatePath("/activity");return{ok:true,message:"Notifications marked as read."};
-}
-
 export async function submitReviewAction(raw: unknown): Promise<ActionState> {
   const parsed = reviewSchema.safeParse(raw); if (!parsed.success) { const fieldErrors=fields(parsed.error); return { ok:false, message:`Please check: ${Object.keys(fieldErrors).join(", ") || "the review form"}.`, fieldErrors }; }
   const context = await anonymousContext(); if (context.error || !context.supabase) return context.error!;
