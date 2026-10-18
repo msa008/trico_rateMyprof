@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowRight, BookOpen, Check, CheckCircle2, EyeOff, MessageCircle, Search, Sparkles, Star } from "lucide-react";
 import { getHomeData } from "@/lib/data";
 import { colleges } from "@/lib/config";
@@ -15,9 +14,9 @@ export default async function Home() {
 
   return <><DemoBanner show={data.demo}/>
     <section className="relative flex min-h-[calc(100svh-4rem)] items-center overflow-hidden border-b border-[#eadde0] bg-[#fbf7f5]">
-      <CampusBackdrop/>
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(251,247,245,.99)_0%,rgba(251,247,245,.96)_38%,rgba(251,247,245,.7)_70%,rgba(251,247,245,.58)_100%)]"/>
-      <div className="subtle-grid pointer-events-none absolute inset-0 opacity-60"/>
+      <div className="subtle-grid pointer-events-none absolute inset-0"/>
+      <div className="pointer-events-none absolute -right-32 -top-40 size-[34rem] rounded-full bg-[#ead0d5]/50 blur-3xl"/>
+      <div className="pointer-events-none absolute -bottom-48 -left-40 size-[30rem] rounded-full bg-[#f4dfcb]/60 blur-3xl"/>
       <div className="container relative grid items-center gap-12 py-12 lg:grid-cols-[1.08fr_.92fr] lg:py-16">
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#d9a8b2] bg-white/80 px-3.5 py-1.5 text-xs font-bold text-[#8f182d] shadow-sm"><Sparkles className="size-3.5"/>Made for Haverford, Bryn Mawr, and Swarthmore</div>
@@ -57,4 +56,3 @@ export default async function Home() {
 
 function Insight({ label, value }: { label: string; value?: number | null }) { return <div className="rounded-xl bg-white p-3"><p className="text-xs font-semibold text-[#667085]">{label}</p><p className="mt-1 text-lg font-black">{value == null ? "—" : `${value.toFixed(1)}/5`}</p></div>; }
 function SectionHead({ eyebrow, title, link }: { eyebrow: string; title: string; link?: string }) { return <div className="flex items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#a91d35]">{eyebrow}</p><h2 className="display mt-2 text-3xl font-semibold sm:text-4xl">{title}</h2></div>{link && <Link href={link} className="hidden items-center gap-1 text-sm font-bold text-[#a91d35] hover:underline sm:flex">View directory <ArrowRight className="size-4"/></Link>}</div>; }
-function CampusBackdrop() { const campuses=[{name:"Haverford College",src:"/campuses/haverford.jpg"},{name:"Bryn Mawr College",src:"/campuses/bryn-mawr.jpg"},{name:"Swarthmore College",src:"/campuses/swarthmore.webp"}];return <div className="pointer-events-none absolute inset-0 grid grid-cols-3" aria-hidden="true">{campuses.map((campus)=><div key={campus.name} className="relative overflow-hidden"><Image src={campus.src} alt="" fill priority sizes="33vw" className="object-cover"/></div>)}</div>; }
