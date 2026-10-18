@@ -18,11 +18,11 @@ async function attachReviewThreads(supabase:NonNullable<Awaited<ReturnType<typeo
 
 export async function getHomeData() {
   const supabase = await createClient();
-  if (!supabase) return { professors: demoProfessors, courses: demoCourses, questions: demoQuestions, demo: true };
+  if (!supabase) return { professors: demoProfessors, courses: demoCourses, questions: demoQuestions.filter((question) => question.review_id), demo: true };
   const [professors, courses, questions] = await Promise.all([
     supabase.from("professor_rating_summaries").select("*").order("updated_at", { ascending: false }).limit(3),
     supabase.from("course_rating_summaries").select("*").order("review_count", { ascending: false }).limit(3),
-    supabase.from("public_questions").select("*").order("created_at", { ascending: false }).limit(4),
+    supabase.from("public_questions").select("*").not("review_id", "is", null).order("created_at", { ascending: false }).limit(4),
   ]);
   return { professors: (professors.data ?? []) as Professor[], courses: (courses.data ?? []) as Course[], questions: (questions.data ?? []) as Question[], demo: false };
 }

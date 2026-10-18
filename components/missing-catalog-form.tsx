@@ -16,8 +16,8 @@ export function MissingCatalogForm({onCreated}:{onCreated:(option:ReviewOption)=
     const response=await createCommunityCatalogOptionAction(Object.fromEntries(formData));
     setPending(false);setResult(response);if(response.ok&&response.option)onCreated(response.option);
   }
-  return <div className="mt-4 rounded-xl border border-dashed border-[#b9c6ed] bg-[#f7f9ff] p-4">
-    <div className="flex gap-3"><PlusCircle className="mt-0.5 size-5 shrink-0 text-[#3159d7]"/><div><h3 className="font-semibold">Add a missing class or professor</h3><p className="mt-1 text-sm text-[#667085]">Use the official catalog spelling when possible. This will be labeled “Community-added” until it is checked.</p></div></div>
+  return <div className="mt-4 rounded-xl border border-dashed border-[#b9c6ed] bg-[#fff8f9] p-4">
+    <div className="flex gap-3"><PlusCircle className="mt-0.5 size-5 shrink-0 text-[#a91d35]"/><div><h3 className="font-semibold">Add a missing class or professor</h3><p className="mt-1 text-sm text-[#667085]">Use the official catalog spelling when possible. This will be labeled “Community-added” until it is checked.</p></div></div>
     <form action={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
       <div><Label>College</Label><select name="collegeSlug" className={fieldClass} required><option value="haverford">Haverford College</option><option value="bryn-mawr">Bryn Mawr College</option><option value="swarthmore">Swarthmore College</option></select></div>
       <div><Label>Course code</Label><Input name="courseCode" placeholder="Example: ECON H105" required/><p className="mt-1 text-xs text-[#667085]">Examples: ECON H105 · MATH B101 · CPSC 021</p></div>
