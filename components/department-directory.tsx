@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { BookOpen, Search, Star, Users } from "lucide-react";
+import { collegeThemeStyle } from "@/lib/config";
 import type { Course, Professor } from "@/lib/types";
 import { initials } from "@/lib/utils";
 
@@ -63,23 +64,23 @@ export function DepartmentDirectory({
   const visibleCourses = useMemo(() => courses.filter((course) => !term
     || `${course.code} ${course.title}`.toLowerCase().includes(term)), [courses, term]);
 
-  return <div className="container py-10 sm:py-14">
+  return <div className="container border-t-4 border-[var(--college)] py-10 sm:py-14" style={collegeThemeStyle(college.slug)}>
     <div className="flex flex-wrap items-center justify-between gap-4">
-      <p className="text-sm text-[#667085]"><Link href={`/colleges/${college.slug}`} className="font-semibold hover:text-[#a91d35] hover:underline">{college.name}</Link><span className="mx-2">›</span>Subjects</p>
-      <Link href="/reviews/new" className="rounded-xl bg-[#a91d35] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#8f182d]">Write a review</Link>
+      <p className="text-sm text-[#667085]"><Link href={`/colleges/${college.slug}`} className="font-semibold hover:text-[var(--college)] hover:underline">{college.name}</Link><span className="mx-2">›</span>Subjects</p>
+      <Link href="/reviews/new" className="rounded-xl bg-[var(--college)] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[var(--college-dark)]">Write a review</Link>
     </div>
 
     <header className="mt-8 border-b border-[#d8dde6] pb-9">
-      <p className="text-sm font-black uppercase tracking-[.18em] text-[#a91d35]">{department.code}</p>
+      <p className="text-sm font-black uppercase tracking-[.18em] text-[var(--college)]">{department.code}</p>
       <h1 className="display mt-2 text-5xl font-semibold leading-none sm:text-6xl">{subjectName}</h1>
       <p className="mt-4 text-lg text-[#566174]">Explore professors and courses in {subjectName} at {college.name}.</p>
       <div className="mt-5 flex flex-wrap gap-3 text-sm font-semibold">
-        <span className="inline-flex items-center gap-2 rounded-full bg-[#fbf0f2] px-4 py-2 text-[#8f182d]"><Users className="size-4" />{professors.length} {professors.length === 1 ? "professor" : "professors"}</span>
-        <span className="inline-flex items-center gap-2 rounded-full bg-[#fbf0f2] px-4 py-2 text-[#8f182d]"><BookOpen className="size-4" />{courses.length} {courses.length === 1 ? "course" : "courses"}</span>
+        <span className="inline-flex items-center gap-2 rounded-full bg-[var(--college-soft)] px-4 py-2 text-[var(--college)]"><Users className="size-4" />{professors.length} {professors.length === 1 ? "professor" : "professors"}</span>
+        <span className="inline-flex items-center gap-2 rounded-full bg-[var(--college-soft)] px-4 py-2 text-[var(--college)]"><BookOpen className="size-4" />{courses.length} {courses.length === 1 ? "course" : "courses"}</span>
       </div>
     </header>
 
-    <div className="relative mt-8"><Search className="absolute left-5 top-1/2 size-5 -translate-y-1/2 text-[#667085]"/><input value={query} onChange={(event) => setQuery(event.target.value)} className="focus-ring h-16 w-full rounded-2xl border-2 border-[#d5a0aa] bg-white pl-13 pr-5 text-base shadow-sm placeholder:text-[#8a919f] focus:border-[#a91d35]" placeholder={`Search ${subjectName} professors or courses`} aria-label={`Search ${subjectName}`} /></div>
+    <div className="relative mt-8"><Search className="absolute left-5 top-1/2 size-5 -translate-y-1/2 text-[var(--college)]"/><input value={query} onChange={(event) => setQuery(event.target.value)} className="focus-ring h-16 w-full rounded-2xl border-2 border-[var(--college-border)] bg-white pl-13 pr-5 text-base shadow-sm placeholder:text-[#8a919f] focus:border-[var(--college)]" placeholder={`Search ${subjectName} professors or courses`} aria-label={`Search ${subjectName}`} /></div>
 
     <section className="mt-12">
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[#d8dde6] pb-3"><div><h2 className="display text-4xl font-semibold">Professors</h2><p className="mt-1 text-sm text-[#667085]">Open a professor to see ratings, courses, reviews, and student questions.</p></div><select value={sort} onChange={(event) => setSort(event.target.value)} aria-label="Sort professors" className="focus-ring h-11 rounded-xl border border-[#d8dde6] bg-white px-4 text-sm"><option value="reviewed">Most reviewed</option><option value="rated">Highest rated</option><option value="az">Name A–Z</option></select></div>
@@ -94,11 +95,11 @@ export function DepartmentDirectory({
 }
 
 function ProfessorBox({ professor }: { professor: Professor }) {
-  return <Link href={`/professors/${professor.slug}`} className="group rounded-2xl border border-[#d8dde6] bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[#c47786] hover:shadow-md"><div className="flex items-start gap-4"><span className="grid size-12 shrink-0 place-items-center rounded-full bg-[#a91d35] text-sm font-bold text-white">{initials(professor.display_name)}</span><div className="min-w-0 flex-1"><h3 className="font-bold group-hover:text-[#a91d35] group-hover:underline">{professor.display_name}</h3><p className="mt-0.5 text-sm text-[#667085]">{professor.department_name}</p><div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-[#eef0f3] pt-3"><div>{professor.overall_rating === null ? <span className="text-sm font-semibold text-[#667085]">Not yet rated</span> : <span className="flex items-center gap-1.5"><Star className="size-4 fill-amber-500 text-amber-500"/><strong className="text-xl">{professor.overall_rating.toFixed(1)}</strong><span className="text-xs text-[#667085]">/5</span></span>}<p className="text-xs text-[#667085]">{professor.review_count} {professor.review_count === 1 ? "review" : "reviews"}</p></div><span className="text-xs font-bold text-[#566174]">{professor.would_take_again_pct === null ? "New profile" : `${professor.would_take_again_pct}% take again`}</span></div></div></div></Link>;
+  return <Link href={`/professors/${professor.slug}`} className="group rounded-2xl border border-[#d8dde6] bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--college-border)] hover:shadow-md"><div className="flex items-start gap-4"><span className="grid size-12 shrink-0 place-items-center rounded-full bg-[var(--college)] text-sm font-bold text-white">{initials(professor.display_name)}</span><div className="min-w-0 flex-1"><h3 className="font-bold group-hover:text-[var(--college)] group-hover:underline">{professor.display_name}</h3><p className="mt-0.5 text-sm text-[#667085]">{professor.department_name}</p><div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-[#eef0f3] pt-3"><div>{professor.overall_rating === null ? <span className="text-sm font-semibold text-[#667085]">Not yet rated</span> : <span className="flex items-center gap-1.5"><Star className="size-4 fill-[var(--college-highlight)] text-[var(--college-highlight)]"/><strong className="text-xl">{professor.overall_rating.toFixed(1)}</strong><span className="text-xs text-[#667085]">/5</span></span>}<p className="text-xs text-[#667085]">{professor.review_count} {professor.review_count === 1 ? "review" : "reviews"}</p></div><span className="text-xs font-bold text-[#566174]">{professor.would_take_again_pct === null ? "New profile" : `${professor.would_take_again_pct}% take again`}</span></div></div></div></Link>;
 }
 
 function CourseBox({ course }: { course: Course }) {
-  return <Link href={`/courses/${course.slug}`} className="group rounded-2xl border border-[#d8dde6] bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[#c47786] hover:shadow-md"><div className="flex items-start justify-between gap-4"><span className="rounded-lg bg-[#fbf0f2] px-2.5 py-1 text-xs font-black text-[#a91d35]">{course.code}</span><span className="flex items-center gap-1 text-xs font-semibold text-[#667085]"><BookOpen className="size-3.5"/>{course.review_count} {course.review_count === 1 ? "review" : "reviews"}</span></div><h3 className="mt-4 text-lg font-bold leading-snug group-hover:text-[#a91d35] group-hover:underline">{course.title}</h3>{course.workload !== null || course.difficulty !== null ? <p className="mt-3 text-xs font-semibold text-[#667085]">{course.workload !== null ? `Workload ${course.workload.toFixed(1)}/5` : ""}{course.workload !== null && course.difficulty !== null ? " · " : ""}{course.difficulty !== null ? `Difficulty ${course.difficulty.toFixed(1)}/5` : ""}</p> : <p className="mt-3 text-xs font-semibold text-[#667085]">Not yet rated</p>}</Link>;
+  return <Link href={`/courses/${course.slug}`} className="group rounded-2xl border border-[#d8dde6] bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--college-border)] hover:shadow-md"><div className="flex items-start justify-between gap-4"><span className="rounded-lg bg-[var(--college-soft)] px-2.5 py-1 text-xs font-black text-[var(--college)]">{course.code}</span><span className="flex items-center gap-1 text-xs font-semibold text-[#667085]"><BookOpen className="size-3.5"/>{course.review_count} {course.review_count === 1 ? "review" : "reviews"}</span></div><h3 className="mt-4 text-lg font-bold leading-snug group-hover:text-[var(--college)] group-hover:underline">{course.title}</h3>{course.workload !== null || course.difficulty !== null ? <p className="mt-3 text-xs font-semibold text-[#667085]">{course.workload !== null ? `Workload ${course.workload.toFixed(1)}/5` : ""}{course.workload !== null && course.difficulty !== null ? " · " : ""}{course.difficulty !== null ? `Difficulty ${course.difficulty.toFixed(1)}/5` : ""}</p> : <p className="mt-3 text-xs font-semibold text-[#667085]">Not yet rated</p>}</Link>;
 }
 
 function Empty({ text }: { text: string }) {
